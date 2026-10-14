@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A field panel to rearrange rows, columns and values, saved layouts with filters (private, shared and default), and the layout in the URL.
 - Number formats, heatmaps, data bars and colors by thresholds.
 - Drilling down from a cell to its records, with links to each record and to another screen.
-- Excel and CSV export and printing.
+- Excel and CSV export and printing. The CSV writes values that spreadsheets would read as formulas (`=`, `+`, `-`, `@`) as text.
 - Filament table filters, `viewAny` policies and tenancy.
 - Cell selection with the keyboard, copying as tab-separated text, a live count, sum and average, and an ARIA grid for screen readers.
 - English and Japanese translations.
