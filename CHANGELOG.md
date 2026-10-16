@@ -20,4 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Excel and CSV export and printing. The CSV writes values that spreadsheets would read as formulas (`=`, `+`, `-`, `@`) as text.
 - Filament table filters, `viewAny` policies and tenancy.
 - Cell selection with the keyboard, copying as tab-separated text, a live count, sum and average, and an ARIA grid for screen readers.
+- `StdDev` and `Variance` measures, computed from the records for every subtotal.
+- `Formula` measures and calculated values users write in the field panel, evaluated in PHP from the aggregated values.
+- Pivot charts: column, stacked column, bar, stacked bar, line, area, column and line, pie, donut and scatter, with tooltips, a legend that hides series, drilling down from a mark and PNG export.
+- Member filters with a searchable checklist, a filters area in the field panel, sorting headers by label or value, and the top or bottom N from the field panel or `limit(bottom: true)` and `orderByLabel()`.
+- Users can change the aggregation, decimals, heatmap, data bars and conditional formatting (text or fill) of a value.
+- Values shown as an index or a rank among their siblings.
+- Compact, classic and flat layouts, grand totals and subtotals shown or hidden per axis, columns resized by dragging, and the display saved with layouts and in the URL.
+- Context menus on headers and cells, expanding or collapsing one level, HTML export and full-screen mode.
 - English and Japanese translations.

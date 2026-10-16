@@ -50,14 +50,19 @@ Whatever is open, the source table is scanned once: the headers under closed hea
 
 ![The field panel to rearrange rows, columns and values](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/fields.png)
 
-- **Database aggregation**: count, distinct count, sum, average, minimum, maximum, ratios of two measures and SQL expressions. Averages and ratios of subtotals are computed from the records, never as averages of averages.
+- **Database aggregation**: count, distinct count, sum, average, minimum, maximum, standard deviation, variance, ratios of two measures and SQL expressions. Averages, deviations and ratios of subtotals are computed from the records, never as averages of averages.
+- **Calculated values**: formulas over other values (`[profit_sum] / [quantity_sum]`), defined in code or written by users in the field panel, with `abs`, `round`, `sqrt`, `min`, `max` and `if`.
+- **Pivot charts**: switch the same result to column, stacked column, bar, stacked bar, line, area, column-and-line, pie, donut or scatter charts, with tooltips, a legend to hide series, a click to list the records, and PNG export.
 - **Dimensions**: columns (enum casts give the labels and order), `belongsTo` relationships of any depth (`store.prefecture.region`), dates by year, quarter, month, week, day or hour or by month of year, weekday and hour of day in the user's timezone (daylight saving included), numeric bins and SQL expressions.
-- **Open what you need**: headers open on demand and only the opened part is queried. Expand or collapse everything, sort rows by any column, keep the top N per group with the rest as "Other", and cap the number of cells.
-- **Show values as**: percentage of the row, column or grand total or of the parent row or column, difference or percentage difference from the previous column, and running totals.
-- **Users arrange it**: a field panel to drag dimensions into rows and columns and measures into values, save named layouts (private or shared, with a default per user, filters included) and share a link with the layout in the URL.
-- **Formats and colors**: decimals, prefixes and suffixes, currencies and percentages; heatmaps, data bars and colors by thresholds.
+- **Open what you need**: headers open on demand and only the opened part is queried. Expand or collapse everything or one level, sort rows by any column, keep the top or bottom N per group with the rest as "Other", and cap the number of cells.
+- **Filter by members**: pick the values of any dimension from a searchable checklist, on the rows, the columns or a separate filters area, and sort headers A to Z, Z to A or by value.
+- **Show values as**: percentage of the row, column or grand total or of the parent row or column, difference or percentage difference from the previous column, running totals, index and rank.
+- **Users arrange it**: a field panel to drag dimensions into rows, columns and filters and measures into values, change the aggregation of a value, save named layouts (private or shared, with a default per user, filters included) and share a link with the layout in the URL.
+- **Layouts**: compact, classic (one column per row dimension, subtotals below) or flat tables, with grand totals and subtotals shown or hidden per axis, and columns resized by dragging.
+- **Formats and colors**: decimals, prefixes and suffixes, currencies and percentages; heatmaps, data bars and text or fill colors by thresholds, set in code or by users.
 - **Drill down**: double-click a cell, or press Enter, to list the records behind it, with links to each record and to another screen (a Warp Sheet, a Warp Table or a resource's list) for the same records.
-- **Export and print**: Excel (.xlsx) with merged headers, frozen labels and number formats, CSV, and printing with the headers repeated on every page.
+- **Export and print**: Excel (.xlsx) with merged headers, frozen labels and number formats, CSV, HTML, PNG of the chart, and printing with the headers repeated on every page. Full-screen mode.
+- **Context menus**: right-click a header to expand or collapse its level, sort or filter it, or a cell to list its records, copy it or change how its value is shown.
 - **Filament inside**: Filament table filters, policies (`viewAny`), tenancy, actions, notifications, dark mode and translations (English and Japanese).
 - **Keyboard and screen readers**: arrow keys, Shift to extend a selection, Ctrl/Cmd+A and Ctrl/Cmd+C (tab-separated, ready to paste into a spreadsheet), and a live count, sum and average of the selection. The visible cells are exposed as an ARIA grid.
 
@@ -143,7 +148,9 @@ use Qalainau\FilamentWarpPivot\Measures\CountDistinct;
 use Qalainau\FilamentWarpPivot\Measures\Max;
 use Qalainau\FilamentWarpPivot\Measures\Min;
 use Qalainau\FilamentWarpPivot\Measures\Ratio;
+use Qalainau\FilamentWarpPivot\Measures\StdDev;
 use Qalainau\FilamentWarpPivot\Measures\Sum;
+use Qalainau\FilamentWarpPivot\Measures\Variance;
 
 Count::make();
 CountDistinct::make('customer_id');
@@ -153,11 +160,61 @@ Sum::make('profit')->expression('amount - cost');
 Ratio::make('margin')->of(Sum::make('profit')->expression('amount - cost'), Sum::make('amount'))->percent();
 Sum::make('amount')->name('share')->showAs(ShowAs::PercentOfColumnTotal);
 Sum::make('amount')->name('growth')->showAs(ShowAs::PercentDifferenceFromPrevious);
+StdDev::make('amount');                                      // sample; ->population() for the population
+Variance::make('amount');
+Sum::make('amount')->name('index')->showAs(ShowAs::Index);
+Sum::make('amount')->name('rank')->showAs(ShowAs::Rank, along: 'rows');
 ```
 
 A measure's name defaults to `column_function` (`amount_sum`); set another with `name()`, for example when the same column appears twice. Users can change how each value is shown in the field panel.
 
-Color cells with `heatmap('success', 'danger')` (high and low colors), `dataBars()` and `colorWhen('<', 0, 'danger')`. Colors are Filament color names. Heatmaps and data bars are scaled to the visible detail cells, without subtotals and totals.
+Color cells with `heatmap('success', 'danger')` (high and low colors), `dataBars()` and `colorWhen('<', 0, 'danger')` (add `background: true` to fill the cell instead of coloring the text). Colors are Filament color names. Heatmaps and data bars are scaled to the innermost visible cells (closed groups included), without subtotals and totals.
+
+Users can change the aggregation of a value in the field panel (sum, average, minimum, maximum, count, standard deviation or variance of the same column) and its decimals, heatmap, data bars and conditional formatting. Limit the aggregations with `aggregations(['sum', 'avg'])`, or turn switching off with `aggregations(false)`.
+
+### Calculated values
+
+A `Formula` computes a value from other measures of the pivot, by name (or label) in brackets. Each measure is aggregated first and the formula is applied to the results of every cell, so subtotals are right.
+
+```php
+use Qalainau\FilamentWarpPivot\Measures\Formula;
+
+$pivot
+    ->measures([Sum::make('amount'), Sum::make('quantity'), CountDistinct::make('customer_id')])
+    ->values([
+        Formula::make('unit_price')->formula('[amount_sum] / [quantity_sum]')->money('USD'),
+        Formula::make('per_customer')->formula('round([amount_sum] / [customer_id_count_distinct], 2)'),
+        Formula::make('big')->formula('if([amount_sum] >= 10000, 1, 0)'),
+    ]);
+```
+
+Formulas support numbers, `+ - * /`, parentheses, comparisons inside `if()`, and `abs`, `round`, `sqrt`, `min`, `max` and `if`. A division by zero or a missing value gives an empty cell. Formulas are evaluated in PHP, never as SQL, so users can write their own with the calculator button of the field panel; turn that off with `calculatedValues(false)`.
+
+### Sorting, top N and member filters
+
+```php
+Relationship::make('product')->limit(10);                    // the ten largest, the rest as "Other"
+Relationship::make('product')->limit(10, bottom: true);      // the ten smallest
+Relationship::make('product')->orderByLabel('desc');         // Z to A
+```
+
+Users can do the same from the funnel button of a dimension in the field panel or by right-clicking a header: pick the values to keep from a searchable list (up to 2,000 values are listed), sort the headers, and keep the top or bottom N by any value. Dimensions dropped in the **Filters** area of the field panel filter the records without becoming rows or columns. Member filters are applied in the database, so totals and drill-downs include only the kept values.
+
+### Layout, totals and charts
+
+```php
+use Qalainau\FilamentWarpPivot\Enums\ChartType;
+use Qalainau\FilamentWarpPivot\Enums\LayoutForm;
+
+$pivot
+    ->layoutForm(LayoutForm::Classic)                        // Compact (default), Classic or Flat
+    ->grandTotals(rows: true, columns: false)
+    ->subtotals(false)
+    ->chartType(ChartType::StackedColumn)
+    ->startWithChart();                                      // open on the chart instead of the table
+```
+
+Users change these in the layout options and chart menus of the toolbar; they are saved with the layout and kept in the URL. The chart shows the same result as the table: the innermost visible rows are its categories and the innermost visible columns of one value its series (up to eight). Turn charts off with `charts(false)`.
 
 ### Opening headers
 
@@ -205,7 +262,7 @@ $pivot
 
 ### Export
 
-The export menu writes the table as it is on screen (open headers and sorting included) to Excel or CSV, or prints it. Limit the formats with `exportable(['csv'])`, or remove the menu with `exportable([])`. Name the file with `exportFileName('sales')`.
+The export menu writes the table as it is on screen (open headers, sorting, layout and totals included) to Excel, CSV or HTML, saves the chart as a PNG image, or prints it. Limit the formats with `exportable(['csv'])`, or remove the menu with `exportable([])`. Name the file with `exportFileName('sales')`.
 
 ## Keyboard
 
@@ -220,7 +277,7 @@ The export menu writes the table as it is on screen (open headers and sorting in
 | Enter / double-click | List the records behind the cell |
 | Escape | Clear the selection |
 
-Click a row or column header to open or close it, and click a value header to sort the rows by it (largest first, then smallest first, then the original order).
+Click a row or column header to open or close it, and click a value header to sort the rows by it (largest first, then smallest first, then the original order). Drag the edge of a column header to resize the column, and double-click the edge to fit it to its contents. Right-click a header or a cell for more.
 
 ## Limitations
 
