@@ -4,6 +4,10 @@
 
 **A pivot table for Filament that aggregates in the database and draws the result on a `<canvas>`: a million source rows are no heavier than a hundred, and a result of thousands of rows and hundreds of columns still scrolls smoothly. Filters, actions, policies and tenancy are Filament's own.**
 
+<a href="https://filament-warp-pivot.webllsystem.com/"><img src="https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/live-demo.png" alt="Try the live demo: filament-warp-pivot.webllsystem.com" width="592"></a>
+
+Drag fields across 200,000 sales, filter regions by their sales, open a cell to search and edit the sales behind it, and export the result to Excel or PDF at **[filament-warp-pivot.webllsystem.com](https://filament-warp-pivot.webllsystem.com/)**. No sign-up needed; the data is reset every hour.
+
 Pivot components for the browser load every record into JavaScript and add them up there. That stops working long before a sales table reaches a million rows. Warp Pivot sends `GROUP BY` queries to your database instead, only for the headers that are open, and sends only the totals to the browser.
 
 ```php
@@ -50,20 +54,27 @@ Whatever is open, the source table is scanned once: the headers under closed hea
 
 ![The field panel to rearrange rows, columns and values](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/fields.png)
 
-- **Database aggregation**: count, distinct count, sum, average, minimum, maximum, standard deviation, variance, ratios of two measures and SQL expressions. Averages, deviations and ratios of subtotals are computed from the records, never as averages of averages.
-- **Calculated values**: formulas over other values (`[profit_sum] / [quantity_sum]`), defined in code or written by users in the field panel, with `abs`, `round`, `sqrt`, `min`, `max` and `if`.
-- **Pivot charts**: switch the same result to column, stacked column, bar, stacked bar, line, area, column-and-line, pie, donut or scatter charts, with tooltips, a legend to hide series, a click to list the records, and PNG export.
+- **Database aggregation**: count, distinct count, sum, average, minimum, maximum, median, product, standard deviation, variance, ratios of two measures and SQL expressions. Averages, deviations and ratios of subtotals are computed from the records, never as averages of averages.
+- **Calculated values**: formulas over other values (`[profit_sum] / [quantity_sum]`) or over the columns of each record before they are added up (`[amount] - [cost]`), defined in code or written by users in the field panel, with `abs`, `round`, `sqrt`, `min`, `max`, `if`, `and`, `or` and `not`.
+![The table and a stacked column chart of the same result, one above the other](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/table-and-chart.png)
+
+- **Pivot charts**: switch the same result to column, stacked column, bar, stacked bar, line, area, column-and-line, pie, donut or scatter charts, or show the table and the chart together, with tooltips, a legend to hide series, a click to list the records, and PNG export.
 - **Dimensions**: columns (enum casts give the labels and order), `belongsTo` relationships of any depth (`store.prefecture.region`), dates by year, quarter, month, week, day or hour or by month of year, weekday and hour of day in the user's timezone (daylight saving included), numeric bins and SQL expressions.
 - **Open what you need**: headers open on demand and only the opened part is queried. Expand or collapse everything or one level, sort rows by any column, keep the top or bottom N per group with the rest as "Other", and cap the number of cells.
-- **Filter by members**: pick the values of any dimension from a searchable checklist, on the rows, the columns or a separate filters area, and sort headers A to Z, Z to A or by value.
+![Filtering categories by a condition on their sales](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/conditions.png)
+
+- **Filter by members and conditions**: pick the values of any dimension from a searchable checklist, or keep what matches a condition on the label (contains, begins with, between…), on a value (sales over 1,000,000) or on the date (between two days, last month, this quarter), on the rows, the columns or a separate filters area. Sort headers A to Z, Z to A, by value or in your own order.
 - **Show values as**: percentage of the row, column or grand total or of the parent row or column, difference or percentage difference from the previous column, running totals, index and rank.
 - **Users arrange it**: a field panel to drag dimensions into rows, columns and filters and measures into values, change the aggregation of a value, save named layouts (private or shared, with a default per user, filters included) and share a link with the layout in the URL.
-- **Layouts**: compact, classic (one column per row dimension, subtotals below) or flat tables, with grand totals and subtotals shown or hidden per axis, and columns resized by dragging.
-- **Formats and colors**: decimals, prefixes and suffixes, currencies and percentages; heatmaps, data bars and text or fill colors by thresholds, set in code or by users.
-- **Drill down**: double-click a cell, or press Enter, to list the records behind it, with links to each record and to another screen (a Warp Sheet, a Warp Table or a resource's list) for the same records.
-- **Export and print**: Excel (.xlsx) with merged headers, frozen labels and number formats, CSV, HTML, PNG of the chart, and printing with the headers repeated on every page. Full-screen mode.
-- **Context menus**: right-click a header to expand or collapse its level, sort or filter it, or a cell to list its records, copy it or change how its value is shown.
-- **Filament inside**: Filament table filters, policies (`viewAny`), tenancy, actions, notifications, dark mode and translations (English and Japanese).
+- **Layouts**: compact, classic (one column per row dimension, subtotals below) or flat tables, with grand totals and subtotals shown or hidden per axis, the grand total at the top or the bottom, a title, and columns resized by dragging.
+![Negative numbers in parentheses, a dash for empty cells, times of day and formula-based conditional formatting](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/formats.png)
+
+- **Formats and colors**: decimals, prefixes and suffixes, currencies, percentages and durations, negative numbers in parentheses, your own separators, and text for empty cells and divisions by zero; heatmaps, data bars and conditional formatting by thresholds or formulas (`[value] < 0 and [amount_sum] > 1000000`) with colors, bold and italic, for all cells, values only or totals only, set in code or by users.
+- **Drill down**: double-click a cell, or press Enter, to list the records behind it. Search and sort them, choose the columns, edit a cell in place or run Filament actions such as edit and delete without leaving the list: the totals update when you save. Link to each record and to another screen for the same records.
+- **Export and print**: Excel (.xlsx) with merged headers, frozen labels and number formats, CSV, PDF, PNG of the table or the chart, HTML, and printing with the headers repeated on every page, all with a header and footer (title, date, page numbers). Hand files to the server instead of downloading them, and save or open a layout as a file. Full-screen mode.
+- **Context menus**: right-click a header to expand or collapse its level, sort or filter it, or a cell to list its records, copy it, change how its value is shown or run your own Filament actions.
+- **Hooks for developers**: Filament actions on cells with the records of the cell, a JavaScript API (state, layout, filters, cells, chart data for other chart libraries), events for clicks, data and changes, and hooks to draw cells and build the context menu your way.
+- **Filament inside**: Filament table filters, policies (`viewAny`, `update`, `delete`), tenancy, actions, notifications, dark mode and translations (English, Japanese, German, French, Spanish, Italian, Brazilian Portuguese, Korean and Chinese, simplified and traditional).
 - **Keyboard and screen readers**: arrow keys, Shift to extend a selection, Ctrl/Cmd+A and Ctrl/Cmd+C (tab-separated, ready to paste into a spreadsheet), and a live count, sum and average of the selection. The visible cells are exposed as an ARIA grid.
 
 ## Requirements
@@ -146,7 +157,9 @@ use Qalainau\FilamentWarpPivot\Measures\Avg;
 use Qalainau\FilamentWarpPivot\Measures\Count;
 use Qalainau\FilamentWarpPivot\Measures\CountDistinct;
 use Qalainau\FilamentWarpPivot\Measures\Max;
+use Qalainau\FilamentWarpPivot\Measures\Median;
 use Qalainau\FilamentWarpPivot\Measures\Min;
+use Qalainau\FilamentWarpPivot\Measures\Product;
 use Qalainau\FilamentWarpPivot\Measures\Ratio;
 use Qalainau\FilamentWarpPivot\Measures\StdDev;
 use Qalainau\FilamentWarpPivot\Measures\Sum;
@@ -164,13 +177,26 @@ StdDev::make('amount');                                      // sample; ->popula
 Variance::make('amount');
 Sum::make('amount')->name('index')->showAs(ShowAs::Index);
 Sum::make('amount')->name('rank')->showAs(ShowAs::Rank, along: 'rows');
+Median::make('amount');                                      // queried per level, like distinct counts
+Product::make('growth_factor');
+Avg::make('handling_seconds')->duration('seconds');          // 27:05:00, or ->duration('minutes', 'short') for 27h 5m
+Sum::make('balance')->negativeInParentheses()->blankAs('—')->divisionByZeroAs('#DIV/0!')->separators(' ', ',');
 ```
 
 A measure's name defaults to `column_function` (`amount_sum`); set another with `name()`, for example when the same column appears twice. Users can change how each value is shown in the field panel.
 
 Color cells with `heatmap('success', 'danger')` (high and low colors), `dataBars()` and `colorWhen('<', 0, 'danger')` (add `background: true` to fill the cell instead of coloring the text). Colors are Filament color names. Heatmaps and data bars are scaled to the innermost visible cells (closed groups included), without subtotals and totals.
 
-Users can change the aggregation of a value in the field panel (sum, average, minimum, maximum, count, standard deviation or variance of the same column) and its decimals, heatmap, data bars and conditional formatting. Limit the aggregations with `aggregations(['sum', 'avg'])`, or turn switching off with `aggregations(false)`.
+`formatWhen()` takes a condition written like a calculated value, where `[value]` is the cell and `[name]` another value of the same cell, and sets a color, bold or italic, for all cells, the values only (`scope: 'cells'`) or the subtotals and totals only (`scope: 'totals'`):
+
+```php
+Ratio::make('margin')->of(/* … */)
+    ->formatWhen('[value] < 0.3 and [amount_sum] > 1000000', 'danger', bold: true)
+    ->formatWhen('[value] >= 0.5', 'success', background: true, scope: 'cells')
+    ->formatWhen('[value] > 0', italic: true, scope: 'totals');
+```
+
+Users can change the aggregation of a value in the field panel (sum, average, minimum, maximum, count, standard deviation, variance, median or product of the same column) and its decimals, negative numbers, text for empty cells, heatmap, data bars and conditional formatting (thresholds or formulas, with colors, bold and italic). Limit the aggregations with `aggregations(['sum', 'avg'])`, or turn switching off with `aggregations(false)`. `aggregationLabels()` on the pivot names the values after their aggregation ("Sum of Sales").
 
 ### Calculated values
 
@@ -188,7 +214,16 @@ $pivot
     ]);
 ```
 
-Formulas support numbers, `+ - * /`, parentheses, comparisons inside `if()`, and `abs`, `round`, `sqrt`, `min`, `max` and `if`. A division by zero or a missing value gives an empty cell. Formulas are evaluated in PHP, never as SQL, so users can write their own with the calculator button of the field panel; turn that off with `calculatedValues(false)`.
+Formulas support numbers, `+ - * /`, parentheses, comparisons, `and`, `or` and `not`, and `abs`, `round`, `sqrt`, `min`, `max` and `if`. A missing value gives an empty cell, and a division by zero the text of `divisionByZeroAs()` (empty by default). Formulas are evaluated in PHP, never as SQL, so users can write their own with the calculator button of the field panel; turn that off with `calculatedValues(false)`.
+
+To let users calculate a value for each record before it is added up, name the columns they may use. The calculator then offers "Calculate for each record" with a sum, average, minimum or maximum of the result:
+
+```php
+$pivot->recordFormulaColumns(['amount' => 'Sales', 'cost' => 'Cost', 'quantity' => 'Units']);
+// a user writes [amount] - [cost] and picks Sum: the profit of every record, added up
+```
+
+Record formulas are turned into SQL from the parsed formula: numbers are written as numbers and only the columns you named can be used.
 
 ### Sorting, top N and member filters
 
@@ -198,7 +233,13 @@ Relationship::make('product')->limit(10, bottom: true);      // the ten smallest
 Relationship::make('product')->orderByLabel('desc');         // Z to A
 ```
 
-Users can do the same from the funnel button of a dimension in the field panel or by right-clicking a header: pick the values to keep from a searchable list (up to 2,000 values are listed), sort the headers, and keep the top or bottom N by any value. Dimensions dropped in the **Filters** area of the field panel filter the records without becoming rows or columns. Member filters are applied in the database, so totals and drill-downs include only the kept values.
+Users can do the same from the funnel button of a dimension in the field panel or by right-clicking a header: pick the values to keep from a searchable list (up to 2,000 values are listed), sort the headers (also in their own order, moved up and down), keep the top or bottom N by any value, or set a condition:
+
+- **Label**: equals, contains, begins or ends with (or not), greater or less than, between (numbers in labels compare as numbers, so "Store 9" comes before "Store 10").
+- **Value**: a value of each header (such as its sales) equals, is greater or less than, or is between two numbers.
+- **Date** (date dimensions): on, before or after a day, between two days, or in the last, current or next days, weeks, months, quarters or years, in the dimension's timezone.
+
+Dimensions dropped in the **Filters** area of the field panel filter the records without becoming rows or columns. Member filters and conditions are applied in the database, so totals and drill-downs include only the kept values. Date conditions compare the column itself, so an index on it makes them fast; label and value conditions first look up the matching values (up to 10,000) with one more grouped query.
 
 ### Layout, totals and charts
 
@@ -210,8 +251,11 @@ $pivot
     ->layoutForm(LayoutForm::Classic)                        // Compact (default), Classic or Flat
     ->grandTotals(rows: true, columns: false)
     ->subtotals(false)
+    ->grandTotalsPosition('top')                             // the grand total row above the table
     ->chartType(ChartType::StackedColumn)
-    ->startWithChart();                                      // open on the chart instead of the table
+    ->startWithChart(withGrid: true)                         // open on the table and the chart together
+    ->title('Sales by region')                               // shown above the pivot, in prints and exports
+    ->expandable(false);                                     // keep the headers as defaultExpanded() opens them
 ```
 
 Users change these in the layout options and chart menus of the toolbar; they are saved with the layout and kept in the URL. The chart shows the same result as the table: the innermost visible rows are its categories and the innermost visible columns of one value its series (up to eight). Turn charts off with `charts(false)`.
@@ -249,9 +293,38 @@ On pages, the current layout is also kept in the `pivot` query string parameter,
 
 Double-click a cell (or press Enter) to list the records behind it, 25 per page.
 
+![The sales behind a cell, searched for Tokyo, sorted by amount, with a quantity being edited in place](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/drill-down.png)
+
 ```php
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\TextInput;
+
 $pivot
     ->drillDownColumns(['sold_at' => 'Date', 'store.name' => 'Store', 'amount' => 'Amount'])
+    ->drillDownSearchable(['store.name', 'product.name'])
+    ->drillDownSortable(['sold_at', 'amount'])
+    ->drillDownEditable(['quantity' => ['required', 'integer', 'min:1']])
+    ->drillDownRecordActions([
+        EditAction::make()->schema([
+            TextInput::make('amount')->numeric()->required(),
+        ]),
+        DeleteAction::make(),
+    ]);
+```
+
+- `drillDownSearchable()` adds a search box that looks for the text in the given attributes, following relationships like `store.name`. Search text columns.
+- `drillDownSortable()` lets users click a header to sort by it. Only columns of the model's own table can be sorted. Index them if a cell can hold many records.
+- `drillDownEditable()` lets users double-click a cell of these columns (of the model's own table) to change it and press Enter to save. The value is validated with the rules you give, the record is looked up within the pivot's filters and tenant, and the model's `update` policy is checked when there is one.
+- Users can hide and show the columns of the list; the choice is remembered in their browser.
+- `drillDownRecordActions()` adds Filament actions to each record. They open on top of the list, and when they finish, the list and the totals behind it are queried again. The records come from the pivot's query, with its filters and tenant. `EditAction`, `DeleteAction`, `ViewAction`, `ReplicateAction`, `RestoreAction` and `ForceDeleteAction` follow the model's policy (`update`, `delete` and so on) when it has one, as they do in a resource. Call `authorize()` on an action to decide yourself.
+
+Searching and sorting are done in the database, and the list is still sent as data and drawn in the browser, so it stays fast.
+
+To open the records somewhere else, link to them:
+
+```php
+$pivot
     ->recordUrl(fn (Sale $record): string => SaleResource::getUrl('view', ['record' => $record]))
     ->drillDownUrl(fn (array $conditions): string => SaleResource::getUrl('index', [
         'tableFilters' => ['channel' => ['value' => $conditions['channel'] ?? null]],
@@ -262,7 +335,66 @@ $pivot
 
 ### Export
 
-The export menu writes the table as it is on screen (open headers, sorting, layout and totals included) to Excel, CSV or HTML, saves the chart as a PNG image, or prints it. Limit the formats with `exportable(['csv'])`, or remove the menu with `exportable([])`. Name the file with `exportFileName('sales')`.
+The export menu writes the table as it is on screen (open headers, sorting, layout, totals and formats included) to Excel, CSV, PDF, a PNG image or HTML, saves the chart as a PNG image, or prints it. Limit the formats with `exportable(['xlsx', 'pdf'])` (`xlsx`, `csv`, `pdf` and `png`), or remove the menu with `exportable([])`. Name the file with `exportFileName('sales')`.
+
+```php
+$pivot
+    ->exportHeader('{title} – {date}')
+    ->exportFooter('Page {page} of {pages}')
+    ->exportSheetName('Sales')
+    ->saveExportsUsing(fn (string $contents, string $fileName) => Storage::put("reports/{$fileName}", $contents));
+```
+
+- The header and footer go on every page of PDFs and prints, above and below PNG images, HTML and CSV files, and into the print header and footer of xlsx files. `{title}` is the pivot's `title()` (or the page title), `{date}` the current date and time.
+- PDFs are A4 landscape. Tables that are a little too wide are shrunk to fit; wider tables are split across pages, with the row headers on every page. Pages are drawn like the screen and embedded as images, so every script and language prints with no font files, but the text in the PDF cannot be selected.
+- `saveExportsUsing()` receives xlsx and CSV files on the server instead of downloading them, and notifies the user.
+- The same menu saves the current layout (fields, open headers, sorting, display) to a JSON file and opens one again.
+
+## Hooks for developers
+
+### Cell actions
+
+Add Filament actions to the context menu of the cells. They receive the cell in `$arguments`, and `cellQuery()` gives you its records:
+
+```php
+use Filament\Actions\Action;
+
+$pivot
+    ->cellActions([
+        Action::make('followUp')
+            ->schema([Textarea::make('note')->required()])
+            ->action(function (array $arguments, array $data): void {
+                $sales = $this->getWarpPivot()->cellQuery($arguments)->get();
+                // $arguments: row, column, conditions (dimension => value), labels, measure, value, layout
+            }),
+    ])
+    ->cellClickAction('followUp');                           // also open it with a click on a cell
+```
+
+The arguments come from the browser, so check permissions in the action as you would anywhere. When the action finishes, the pivot is queried again.
+
+### JavaScript
+
+The pivot's element has a `warpPivot` property with an API, also passed in the `warp-pivot:ready` event:
+
+```js
+document.addEventListener('warp-pivot:ready', (event) => {
+    const pivot = event.detail.pivot
+
+    // Draw cells your way: return { text, color, background, bold, italic } or nothing
+    pivot.customizeCell((cell) => (cell.value > 1_000_000 ? { bold: true, color: 'success' } : null))
+
+    // Change the context menu: items are { label, run }
+    pivot.customizeContextMenu((items, context) => [...items, { label: 'Log', run: () => console.log(context.cell) }])
+})
+
+document.addEventListener('warp-pivot:cell-click', (event) => console.log(event.detail))
+```
+
+- Methods: `refresh()`, `getState()`, `setState(state)`, `setLayout(layout)`, `setDisplay(changes)`, `setFilter(dimension, { filter, condition, sort, limit })`, `expandAll()`, `collapseAll()`, `getCell(row, column)`, `getSelection()`, `getChartData(measure)`, `customizeCell(fn)`, `customizeContextMenu(fn)` and `print()`.
+- Events (bubbling from the pivot to `document`): `warp-pivot:ready`, `warp-pivot:data-loaded`, `warp-pivot:state-changed`, `warp-pivot:cell-click` and `warp-pivot:cell-dblclick`. Cells carry `row` and `column` (header paths), `rowLabel`, `columnLabel`, `conditions`, `measure`, `value`, `text` and `kind` (`cell`, `subtotal` or `total`).
+- `customizeCell()` is called for every visible cell each time the pivot is drawn, so keep it quick. Colors are Filament color names or CSS colors.
+- To draw the result with another chart library, read `getChartData()` (categories and series of the visible rows and columns) after `warp-pivot:data-loaded`.
 
 ## Keyboard
 
@@ -283,7 +415,9 @@ Click a row or column header to open or close it, and click a value header to so
 
 - Distinct counts cannot be added up, so each visible level is queried separately when they are shown, and "Other" headers show no distinct count.
 - Sorting by a column happens in the browser for the loaded rows. `orderByValue()` and `limit()` sort on the server.
-- The drill-down list shows record attributes as text; it is not a Filament table.
+- The drill-down list shows record attributes as text; it is not a Filament table. Use `drillDownEditable()` and `drillDownRecordActions()` to edit records from it.
+- Medians are queried for every visible level with window functions (MySQL 8, MariaDB 10.2, SQLite 3.25, PostgreSQL), which takes longer than sums on large tables. Products use `ln()`, which SQLite has from 3.35 when built with its math functions.
+- PDFs contain the pages as images: the text in them cannot be selected or searched.
 - Dates in MySQL, MariaDB and SQLite are shifted to the display timezone with the daylight saving rules from 1990 to 2050. PostgreSQL uses its own timezone database.
 
 ## Troubleshooting

@@ -22,15 +22,13 @@ the Software according to the license tier you purchased:
   One (1) year of updates.
 - **Unlimited Projects** — Use in an **unlimited** number of projects, including
   SaaS applications. One (1) year of updates.
-- **Lifetime** — Same as Unlimited Projects, with updates for as long as the
-  Software is maintained.
 
 A "project" means a single application codebase. Each end product you sell,
 sublicense, or deploy for a distinct client counts as a separate project.
 
 A "SaaS application" means an application that serves multiple customers or
 organizations under a subscription or similar arrangement. Using the Software in a
-SaaS application requires an Unlimited Projects or Lifetime license.
+SaaS application requires an Unlimited Projects license.
 
 ## 2. Permitted Use
 

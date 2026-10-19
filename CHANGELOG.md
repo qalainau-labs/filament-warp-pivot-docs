@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A field panel to rearrange rows, columns and values, saved layouts with filters (private, shared and default), and the layout in the URL.
 - Number formats, heatmaps, data bars and colors by thresholds.
 - Drilling down from a cell to its records, with links to each record and to another screen.
+- Searching and sorting the drill-down list (`drillDownSearchable()`, `drillDownSortable()`), and Filament actions on its records (`drillDownRecordActions()`) that open on top of it and update the totals when they finish.
 - Excel and CSV export and printing. The CSV writes values that spreadsheets would read as formulas (`=`, `+`, `-`, `@`) as text.
 - Filament table filters, `viewAny` policies and tenancy.
 - Cell selection with the keyboard, copying as tab-separated text, a live count, sum and average, and an ARIA grid for screen readers.
@@ -28,4 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Values shown as an index or a rank among their siblings.
 - Compact, classic and flat layouts, grand totals and subtotals shown or hidden per axis, columns resized by dragging, and the display saved with layouts and in the URL.
 - Context menus on headers and cells, expanding or collapsing one level, HTML export and full-screen mode.
-- English and Japanese translations.
+- Conditions on dimensions: on the label (contains, begins with, between…), on a value of each header, and on dates (between two days, the last, current or next period).
+- `Median` and `Product` measures, durations (`duration()`), negative numbers in parentheses, text for empty cells and divisions by zero, and custom separators.
+- Conditional formatting with formulas over the cell and the other values of the cell (`formatWhen()`), with bold and italic, for all cells, values only or totals only.
+- Calculated values over the columns of each record (`recordFormulaColumns()`), and `and`, `or` and `not` in formulas.
+- The grand total row at the top (`grandTotalsPosition()`), the table and the chart together, a title, value labels with their aggregation, pivots that cannot be opened and closed, and headers in the user's own order.
+- Choosing the columns of the drill-down and editing its cells in place (`drillDownEditable()`).
+- PDF and PNG exports of the table, headers and footers for every export, the xlsx sheet name, exports handed to the server (`saveExportsUsing()`), and layouts saved to and opened from a file.
+- Cell actions (`cellActions()`, `cellClickAction()`, `cellQuery()`), a JavaScript API, events, and hooks to draw cells and build the context menu.
+- English, Japanese, German, French, Spanish, Italian, Brazilian Portuguese, Korean and Chinese (simplified and traditional) translations.
