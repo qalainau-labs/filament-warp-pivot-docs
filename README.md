@@ -434,7 +434,7 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## Support
 
-Open an issue at https://github.com/qalainau-labs/filament-warp-pivot-docs/issues. Do not post your license key in the issue.
+Ask a question or report a bug at https://warpui.com/support?plugin=pivot. Do not post your license key in your question.
 
 ## License
 

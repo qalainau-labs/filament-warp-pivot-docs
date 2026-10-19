@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-20
+
 ### Added
 
 - `PivotPage`, `PivotWidget` and `InteractsWithPivot` to put a canvas-rendered pivot table on a page, on a dashboard or in any Livewire component.
