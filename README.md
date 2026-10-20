@@ -113,6 +113,23 @@ The migration creates one table, `warp_pivot_views`, for the layouts users save.
 
 Extend `PivotPage` for a full page or `PivotWidget` for a dashboard widget, and implement `pivot()`.
 
+A widget can read the dashboard's filters with Filament's `InteractsWithPageFilters`. Use `$this->pageFilters` in the query, and the pivot is queried again whenever they change:
+
+```php
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
+
+class SalesByRegion extends PivotWidget
+{
+    use InteractsWithPageFilters;
+
+    public function pivot(Pivot $pivot): Pivot
+    {
+        return $pivot->query(fn (): Builder => Sale::query()
+            ->when($this->pageFilters['channel'] ?? null, fn (Builder $query, string $channel) => $query->where('channel', $channel)));
+    }
+}
+```
+
 In any other Livewire component, implement `HasPivot`, `HasSchemas` and `HasActions`, use `InteractsWithPivot`, `InteractsWithSchemas` and `InteractsWithActions`, and render `{{ $this->getWarpPivot() }}`. The pivot's properties and methods are prefixed with `warpPivot`. `HasPivot` includes Filament's `HasTable`: the pivot uses a hidden table for its filters, so the component cannot have a Filament table of its own.
 
 ### Records
@@ -285,7 +302,7 @@ When the model has a policy, `viewAny` decides who may see the pivot. Override i
 
 ### Layouts
 
-Users can rearrange the pivot with the field panel unless you call `configurable(false)`. Signed-in users can save layouts, with the filters, and share them with everyone (`shareableViews(false)` to prevent sharing, `savedViews(false)` to turn saving off). Layouts are stored per pivot under `key()`, which defaults to the Livewire component's class, and per tenant.
+Users can rearrange the pivot with the field panel unless you call `configurable(false)`. Signed-in users can save layouts, with the filters, the display settings (table or chart, totals, form) and the column widths, and share them with everyone (`shareableViews(false)` to prevent sharing, `savedViews(false)` to turn saving off). Layouts are stored per pivot under `key()`, which defaults to the Livewire component's class, and per tenant. "Reset" goes back to the layout you gave in `pivot()` and puts the filters back to their defaults.
 
 On pages, the current layout is also kept in the `pivot` query string parameter, so the address can be bookmarked or shared. Change the name with `urlKey('sales')`, turn it off with `urlKey(false)`, or turn it on for a widget or another component by giving it a name.
 
@@ -315,11 +332,13 @@ $pivot
 
 - `drillDownSearchable()` adds a search box that looks for the text in the given attributes, following relationships like `store.name`. Search text columns.
 - `drillDownSortable()` lets users click a header to sort by it. Only columns of the model's own table can be sorted. Index them if a cell can hold many records.
-- `drillDownEditable()` lets users double-click a cell of these columns (of the model's own table) to change it and press Enter to save. The value is validated with the rules you give, the record is looked up within the pivot's filters and tenant, and the model's `update` policy is checked when there is one.
+- `drillDownEditable()` lets users double-click a cell of these columns (of the model's own table) to change it and press Enter to save. The value is validated with the rules you give, the record is looked up within the pivot's filters and tenant, and the model's `update` policy is checked when there is one. After saving, the list and the totals are queried again, so columns your model changes along with it (an amount worked out from the quantity in a `saving` hook, say) show their new values. If a model event stops the save, the user is told it was not saved. Dates and times are shown and read in Filament's timezone (`FilamentTimezone`), and date-only columns (`date` casts) are left as they are.
 - Users can hide and show the columns of the list; the choice is remembered in their browser.
 - `drillDownRecordActions()` adds Filament actions to each record. They open on top of the list, and when they finish, the list and the totals behind it are queried again. The records come from the pivot's query, with its filters and tenant. `EditAction`, `DeleteAction`, `ViewAction`, `ReplicateAction`, `RestoreAction` and `ForceDeleteAction` follow the model's policy (`update`, `delete` and so on) when it has one, as they do in a resource. Call `authorize()` on an action to decide yourself.
 
 Searching and sorting are done in the database, and the list is still sent as data and drawn in the browser, so it stays fast.
+
+When records are changed from a drill-down or a cell action, other pivots on the same page that read the same table (two widgets on a dashboard, say) are queried again too.
 
 To open the records somewhere else, link to them:
 

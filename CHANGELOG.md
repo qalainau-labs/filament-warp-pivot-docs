@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-20
+
+### Added
+
+- Widgets that use `InteractsWithPageFilters` are queried again when the dashboard's filters change.
+- When records are changed from a drill-down or a cell action, other pivots on the same page that read the same table are queried again.
+
+### Fixed
+
+- After a record is edited in the drill-down, the list is loaded again, so columns that the model changes along with the edited one (an amount worked out from the quantity, say) show their new values.
+- Pressing Esc or opening another cell while an edit was being saved left the totals and the list as they were.
+- Hiding or showing a drill-down column while editing could save the value to the neighbouring column.
+- Editing a date and time in the drill-down moved it by the difference between Filament's timezone and the app's. Date-only columns are now shown and saved without a timezone.
+- When a model event stopped the save of a drill-down edit, the edit looked saved.
+- Saved layouts now keep the display settings and the column widths, and applying one no longer leaves the previous display in place.
+- "Reset" now also puts the filters back to their defaults.
+- Columns grow when their values get wider after the pivot is queried again (after an edit, say), and are measured again when the web font has loaded.
+- The context menu closes when the pivot is queried again, so its items no longer act on a different cell.
+- The selected cells stay selected when the pivot is queried again or a header is opened from the keyboard.
+- The chart's measure, the sorted column and the column widths follow their measure when values are removed or reordered.
+- A saved layout that was deleted or unshared is taken out of the list when it is chosen.
+
 ## [1.0.0] - 2026-10-20
 
 ### Added
