@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-25
+
+### Upgrading
+
+- Run `php artisan migrate` after updating. The new `update_warp_pivot_views_keys_to_strings` migration turns
+  `warp_pivot_views.owner_id` and `tenant_id` into text columns and keeps the saved layouts.
+
+### Added
+
+- A "Tenancy" section in the README: a full panel example, what is kept to the current tenant, how the relationship is found, and things to know.
+
+### Changed
+
+- `warp_pivot_views.owner_id` and `tenant_id` are text columns, so users and tenants with UUID or ULID keys can save layouts (MySQL, MariaDB and PostgreSQL refused them before). Run `php artisan migrate` after updating: a new migration changes the columns of an existing table and keeps the saved layouts. `PivotView::$owner_id` and `$tenant_id` are now strings.
+- When the model has no relationship to the tenant, the pivot says how to fix it (name another relationship with `scopeToTenant(relationship: …)`, or turn the scope off) instead of failing with "Call to undefined method".
+
 ## [1.0.1] - 2026-10-20
 
 ### Added

@@ -287,7 +287,7 @@ $pivot->defaultExpanded(rows: 0, columns: 1);
 
 `maxCells(200_000)` (the default) caps the cells sent at once. When a result would be larger, the extra headers are left out with a warning, and subtotals and totals still include them.
 
-### Filters, permissions and tenancy
+### Filters and permissions
 
 `filters()` takes Filament table filters. They appear in a dropdown above the pivot, like on a table.
 
@@ -298,7 +298,98 @@ $pivot->filters([
 ]);
 ```
 
-When the model has a policy, `viewAny` decides who may see the pivot. Override it with `authorize(fn (): bool => …)`. With panel tenancy, records are scoped to the current tenant like resources are; use `scopeToTenant(false)` or `scopeToTenant(relationship: 'team')` to change that.
+When the model has a policy, `viewAny` decides who may see the pivot. Override it with `authorize(fn (): bool => …)`.
+
+### Tenancy
+
+If your panel uses [Filament's multi-tenancy](https://filamentphp.com/docs/users/tenancy) (each team, shop or company sees only its own data), the pivot follows it. You don't have to filter the query yourself: the pivot keeps to the current tenant in the same way a resource does.
+
+A complete panel, where a user can belong to several teams:
+
+```php
+use App\Models\Team;
+use Filament\Panel;
+
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->id('app')
+        ->path('app')
+        ->tenant(Team::class, slugAttribute: 'slug')
+        ->pages([SalesReport::class]);
+}
+```
+
+```php
+// app/Models/Sale.php — each sale belongs to a team
+public function team(): BelongsTo
+{
+    return $this->belongsTo(Team::class);
+}
+
+// app/Models/User.php — implements FilamentUser and HasTenants
+public function teams(): BelongsToMany
+{
+    return $this->belongsToMany(Team::class);
+}
+
+public function getTenants(Panel $panel): Collection
+{
+    return $this->teams;
+}
+
+public function canAccessTenant(Model $tenant): bool
+{
+    return $this->teams()->whereKey($tenant)->exists();
+}
+```
+
+```php
+class SalesReport extends PivotPage
+{
+    public function pivot(Pivot $pivot): Pivot
+    {
+        // No where('team_id', …) needed
+        return $pivot->query(Sale::class)->rows(['store'])->values([Sum::make('amount')]);
+    }
+}
+```
+
+What is kept to the current tenant:
+
+- The totals, the charts and the export.
+- The records in the drill-down, editing a cell there, the record actions (`EditAction`, `DeleteAction` and so on) and the records a cell action gets from `cellQuery()`. A record of another tenant can't be opened, changed or deleted, even when its key is sent from the browser.
+- The values offered in the field panel's filter lists.
+- Saved layouts. A layout saved in one team, shared or not, is not listed, opened or deleted in another team, or in a panel without tenancy.
+
+How the records are matched to the tenant, as Filament does it for resources:
+
+- The relationship to the tenant is the one the panel names (`->tenant(Team::class, ownershipRelationship: 'owner')`), or by default the tenant model's name in camel case (`team` for `Team`).
+- A `BelongsTo` or `MorphTo` relationship compares the key column. Any other relationship (many-to-many, `HasManyThrough`) keeps the records that have the tenant among their related records.
+- When the pivot reads the tenant model itself (`query(Team::class)`), only the current tenant is counted.
+- In a panel without tenancy, nothing is filtered.
+
+Change it per pivot:
+
+```php
+// Another relationship to the tenant, for this pivot only (here a many-to-many one)
+$pivot->query(Store::class)->scopeToTenant(relationship: 'teams');
+
+// Records that all tenants share (a list of countries, say)
+$pivot->query(Country::class)->scopeToTenant(false);
+```
+
+Columns and migrations: your tables need what Filament's tenancy needs anyway, such as a `team_id` column for a `BelongsTo` relationship, or a pivot table for a many-to-many one. Warp Pivot's own table, `warp_pivot_views`, already has `tenant_type` and `tenant_id`. They are text columns, so number, UUID and ULID keys all work, for tenants and for users.
+
+Updating from 1.0.1 or earlier: run `php artisan migrate`. A new migration turns `tenant_id` and `owner_id` from number columns into text columns and keeps the saved layouts.
+
+Things to know:
+
+- When the model has no relationship by that name, the pivot stops with an error that says what to do, instead of showing every tenant's records. Add the relationship, name another one with `scopeToTenant(relationship: …)`, or call `scopeToTenant(false)`.
+- When the model also has a resource in the panel, Filament itself adds a tenant scope to every query of that model in the panel. `scopeToTenant(false)` turns off only the pivot's own scope, not Filament's.
+- Filters you write yourself are your queries. A `SelectFilter::make('store')->relationship('store', 'name')` lists every store, unless the `Store` model has a resource in the panel. When stores belong to a team, keep the list to the tenant with the third argument: `->relationship('store', 'name', fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()))`.
+- Validation rules for `drillDownEditable()` are plain Laravel rules. For a value that must be unique within a team, add the tenant to the rule: `Rule::unique('sales', 'code')->where('team_id', Filament::getTenant()->getKey())`.
+- A pivot on a Livewire component outside a panel has no current tenant, so nothing is filtered. Filter the query yourself there.
 
 ### Layouts
 
