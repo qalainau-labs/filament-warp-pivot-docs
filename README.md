@@ -4,9 +4,9 @@
 
 **A pivot table for Filament that aggregates in the database and draws the result on a `<canvas>`: a million source rows are no heavier than a hundred, and a result of thousands of rows and hundreds of columns still scrolls smoothly. Filters, actions, policies and tenancy are Filament's own.**
 
-<a href="https://filament-warp-pivot.webllsystem.com/"><img src="https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/live-demo.png" alt="Try the live demo: filament-warp-pivot.webllsystem.com" width="592"></a>
+<a href="https://demo.warpui.com/pivot"><img src="https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/live-demo.png" alt="Try the live demo: demo.warpui.com/pivot" width="592"></a>
 
-Drag fields across 200,000 sales, filter regions by their sales, open a cell to search and edit the sales behind it, and export the result to Excel or PDF at **[filament-warp-pivot.webllsystem.com](https://filament-warp-pivot.webllsystem.com/)**. No sign-up needed; the data is reset every hour.
+Drag fields across 200,000 sales, filter regions by their sales, open a cell to search and edit the sales behind it, and export the result to Excel or PDF at **[demo.warpui.com/pivot](https://demo.warpui.com/pivot)**. No sign-up needed; the data is reset every hour.
 
 Pivot components for the browser load every record into JavaScript and add them up there. That stops working long before a sales table reaches a million rows. Warp Pivot sends `GROUP BY` queries to your database instead, only for the headers that are open, and sends only the totals to the browser.
 
