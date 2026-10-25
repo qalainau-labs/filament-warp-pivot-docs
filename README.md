@@ -103,7 +103,7 @@ php artisan migrate
 php artisan filament:assets
 ```
 
-The migration creates one table, `warp_pivot_views`, for the layouts users save. Your tables are not changed. To edit the migration, publish it with `php artisan vendor:publish --tag=filament-warp-pivot-migrations`.
+The migration creates one table, `warp_pivot_views`, for the layouts users save. Your tables are not changed. To edit the migration, publish it with `php artisan vendor:publish --tag=filament-warp-pivot-migrations`. Publish it before you run `php artisan migrate` for the first time: Warp Pivot then runs your copy instead of its own. If the tables already exist, change them with a migration of your own instead.
 
 > Run `php artisan filament:assets` again after every update of the package.
 
