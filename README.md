@@ -423,11 +423,49 @@ $pivot
 
 - `drillDownSearchable()` adds a search box that looks for the text in the given attributes, following relationships like `store.name`. Search text columns.
 - `drillDownSortable()` lets users click a header to sort by it. Only columns of the model's own table can be sorted. Index them if a cell can hold many records.
-- `drillDownEditable()` lets users double-click a cell of these columns (of the model's own table) to change it and press Enter to save. The value is validated with the rules you give, the record is looked up within the pivot's filters and tenant, and the model's `update` policy is checked when there is one. After saving, the list and the totals are queried again, so columns your model changes along with it (an amount worked out from the quantity in a `saving` hook, say) show their new values. If a model event stops the save, the user is told it was not saved. Dates and times are shown and read in Filament's timezone (`FilamentTimezone`), and date-only columns (`date` casts) are left as they are.
+- `drillDownEditable()` lets users double-click a cell of these columns (of the model's own table) to change it and press Enter to save. The value is validated with the rules you give, the record is looked up within the pivot's filters and tenant, and the model's `update` policy is checked when there is one. After saving, the list and the totals are queried again, so columns your model changes along with it (an amount worked out from the quantity in a `saving` hook, say) show their new values. If a model event stops the save, the user is told it was not saved. Dates and times are shown and read in Filament's timezone (`FilamentTimezone`), and date-only columns (`date` casts) are left as they are (see [Dates and formats in the drill-down](#dates-and-formats-in-the-drill-down)).
 - Users can hide and show the columns of the list; the choice is remembered in their browser.
 - `drillDownRecordActions()` adds Filament actions to each record. They open on top of the list, and when they finish, the list and the totals behind it are queried again. The records come from the pivot's query, with its filters and tenant. `EditAction`, `DeleteAction`, `ViewAction`, `ReplicateAction`, `RestoreAction` and `ForceDeleteAction` follow the model's policy (`update`, `delete` and so on) when it has one, as they do in a resource. Call `authorize()` on an action to decide yourself.
 
 Searching and sorting are done in the database, and the list is still sent as data and drawn in the browser, so it stays fast.
+
+#### Dates and formats in the drill-down
+
+Values are shown as text: numbers with thousands separators, dates and times in Filament's timezone (`FilamentTimezone`), enums by their label. A column with a `date` cast (`date`, `immutable_date` or `date:Y-m-d`) is shown as a date without a time and is never moved to the day before or after by the timezone. This also works for columns of related models, such as `order.order_date` or `order.customer.signed_up_on`: the cast of the related model is used.
+
+To show a column your own way, give a closure per column to `drillDownFormats()`. It receives `$state` (the value of the column) and `$record` (the record, or type-hint your model class), and returns the text to show. This is the place for money stored in cents, percentages or your own date format:
+
+```php
+use App\Models\OrderLine;
+use Illuminate\Support\Number;
+
+$pivot
+    ->drillDownColumns([
+        'order.number' => 'Order',
+        'order.order_date' => 'Order date',
+        'line_total' => 'Sales',
+        'margin' => 'Gross margin',
+        'margin_percent' => 'Margin %',
+    ])
+    ->drillDownFormats([
+        // Cents to dollars
+        'line_total' => fn (int $state): string => Number::currency($state / 100, 'USD'),
+        // Columns that are not attributes are worked out from the record
+        'margin' => fn (OrderLine $record): string => Number::currency(($record->line_total - $record->quantity * $record->unit_cost) / 100, 'USD'),
+        'margin_percent' => fn (OrderLine $record): string => $record->line_total === 0
+            ? '—'
+            : Number::percentage(($record->line_total - $record->quantity * $record->unit_cost) / $record->line_total * 100, 1),
+        // Your own date format (the state is a Carbon date, or null)
+        'order.order_date' => fn ($state): ?string => $state?->format('Y/m/d'),
+    ]);
+```
+
+- The keys are the same names as in `drillDownColumns()`, related columns included. A column without a closure is shown as before.
+- A column that is not an attribute of the model (`margin` above) has a `$state` of `null`; work the value out from `$record`. Load the relationships you read with `$with` on the model or `with()` in the pivot's query, so each page of 25 records doesn't run a query per row.
+- Return a string to show it as it is, or a number (`int` or `float`) to show it like the other numbers. Returning `null` leaves the cell blank.
+- Columns of numbers are aligned to the right. A column whose text looks like an amount or a percentage (`$1,234.00`, `-12.5%`, `¥1,000`, `(1,234)`) is aligned to the right too.
+- An editable column (`drillDownEditable()`) shows the formatted text, and its input still starts with the value itself (`1250`, not `$12.50`). After saving, the new value is formatted the same way.
+- The formats are for the drill-down list only. The pivot's own values are formatted with the methods of the values (`money()`, `decimals()`, `percent()`), and those are what the export writes.
 
 When records are changed from a drill-down or a cell action, other pivots on the same page that read the same table (two widgets on a dashboard, say) are queried again too.
 
@@ -525,7 +563,7 @@ Click a row or column header to open or close it, and click a value header to so
 
 - Distinct counts cannot be added up, so each visible level is queried separately when they are shown, and "Other" headers show no distinct count.
 - Sorting by a column happens in the browser for the loaded rows. `orderByValue()` and `limit()` sort on the server.
-- The drill-down list shows record attributes as text; it is not a Filament table. Use `drillDownEditable()` and `drillDownRecordActions()` to edit records from it.
+- The drill-down list shows record attributes as text; it is not a Filament table. Format the text with `drillDownFormats()`, and use `drillDownEditable()` and `drillDownRecordActions()` to edit records from it.
 - Medians are queried for every visible level with window functions (MySQL 8, MariaDB 10.2, SQLite 3.25, PostgreSQL), which takes longer than sums on large tables. Products use `ln()`, which SQLite has from 3.35 when built with its math functions.
 - PDFs contain the pages as images: the text in them cannot be selected or searched.
 - Dates in MySQL, MariaDB and SQLite are shifted to the display timezone with the daylight saving rules from 1990 to 2050. PostgreSQL uses its own timezone database.

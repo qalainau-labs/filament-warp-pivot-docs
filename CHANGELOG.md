@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-31
+
+### Added
+
+- `drillDownFormats()`: a closure per drill-down column to show its value your own way (money in cents, percentages,
+  your own date format), also for columns that are not attributes and are worked out from the record.
+  Columns of amounts and percentages are aligned to the right.
+
+### Fixed
+
+- Date-only columns of related models in the drill-down (`'order.order_date' => 'Order date'` with a `date` cast on
+  the order) were shown with a time ("12:00 AM"), and could be shown as the day before in a timezone behind UTC.
+  The cast of the related model is now used, also through nested relationships (`order.customer.signed_up_on`).
+
 ## [1.1.1] - 2026-10-25
 
 ### Fixed
