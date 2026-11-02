@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-02
+
+### Fixed
+
+- Relative date conditions read naturally in every language: the current period is one word or phrase ("today",
+  "this week", 「今日」, 「今天」, 「本週」, 「이번 달」) instead of "this" + "day" (「本天」), the units are plural after a
+  number ("in the last 3 months", 「直近 3 か月」), and the words before the number agree with the period in Spanish,
+  Italian and Portuguese ("en las últimas 2 semanas"). The language files have `filter.relative.*` in place of
+  `filter.periods.*`; if you published and changed `filter.periods`, move your wording to `filter.relative`.
+- Translations read more naturally: the Korean name of the Compact layout is a noun (「압축 형식」, it was the adverb
+  「간단히」), Spanish speaks to the user with tú everywhere (it mixed usted and tú), and French says
+  « Ordre personnalisé » for a custom sort order.
+
 ## [1.2.0] - 2026-10-31
 
 ### Added
