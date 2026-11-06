@@ -25,12 +25,12 @@ class SalesPivot extends PivotPage
         return $pivot
             ->query(Sale::class)
             ->rows([
-                Relationship::make('store.prefecture.region')->label('Region'),
-                Relationship::make('store.prefecture')->label('Prefecture'),
+                Relationship::make('store.state.region')->label('Region'),
+                Relationship::make('store.state')->label('State'),
             ])
             ->columns([Date::make('sold_at')->year()->label('Year')])
             ->values([
-                Sum::make('amount')->label('Sales')->money('JPY'),
+                Sum::make('amount')->label('Sales')->money('USD'),
                 Ratio::make('margin')->of(Sum::make('profit')->expression('amount - cost'), Sum::make('amount'))->percent(),
             ]);
     }
@@ -59,22 +59,22 @@ Whatever is open, the source table is scanned once: the headers under closed hea
 ![The table and a stacked column chart of the same result, one above the other](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/table-and-chart.png)
 
 - **Pivot charts**: switch the same result to column, stacked column, bar, stacked bar, line, area, column-and-line, pie, donut or scatter charts, or show the table and the chart together, with tooltips, a legend to hide series, a click to list the records, and PNG export.
-- **Dimensions**: columns (enum casts give the labels and order), `belongsTo` relationships of any depth (`store.prefecture.region`), dates by year, quarter, month, week, day or hour or by month of year, weekday and hour of day in the user's timezone (daylight saving included), numeric bins and SQL expressions.
+- **Dimensions**: columns (enum casts give the labels and order), `belongsTo` relationships of any depth (`store.state.region`), dates by year, quarter, month, week, day or hour or by month of year, weekday and hour of day in the user's timezone (daylight saving included), numeric bins and SQL expressions.
 - **Open what you need**: headers open on demand and only the opened part is queried. Expand or collapse everything or one level, sort rows by any column, keep the top or bottom N per group with the rest as "Other", and cap the number of cells.
 ![Filtering categories by a condition on their sales](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/conditions.png)
 
 - **Filter by members and conditions**: pick the values of any dimension from a searchable checklist, or keep what matches a condition on the label (contains, begins with, between…), on a value (sales over 1,000,000) or on the date (between two days, last month, this quarter), on the rows, the columns or a separate filters area. Sort headers A to Z, Z to A, by value or in your own order.
 - **Show values as**: percentage of the row, column or grand total or of the parent row or column, difference or percentage difference from the previous column, running totals, index and rank.
 - **Users arrange it**: a field panel to drag dimensions into rows, columns and filters and measures into values, change the aggregation of a value, save named layouts (private or shared, with a default per user, filters included) and share a link with the layout in the URL.
-- **Layouts**: compact, classic (one column per row dimension, subtotals below) or flat tables, with grand totals and subtotals shown or hidden per axis, the grand total at the top or the bottom, a title, and columns resized by dragging.
+- **Layouts**: compact, classic (one column per row dimension, subtotals below) or flat tables, values side by side in columns or one under the other in rows (drag "Σ Values" like in Excel), with grand totals and subtotals shown or hidden per axis, the grand total at the top or the bottom, a title, and columns resized by dragging.
 ![Negative numbers in parentheses, a dash for empty cells, times of day and formula-based conditional formatting](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/formats.png)
 
-- **Formats and colors**: decimals, prefixes and suffixes, currencies, percentages and durations, negative numbers in parentheses, your own separators, and text for empty cells and divisions by zero; heatmaps, data bars and conditional formatting by thresholds or formulas (`[value] < 0 and [amount_sum] > 1000000`) with colors, bold and italic, for all cells, values only or totals only, set in code or by users.
+- **Formats and colors**: decimals, prefixes and suffixes, currencies (also amounts stored in cents), percentages and durations, negative numbers in parentheses, your own separators, and text for empty cells and divisions by zero; heatmaps, data bars and conditional formatting by thresholds or formulas (`[value] < 0 and [amount_sum] > 1000000`) with colors, bold and italic, for all cells, values only or totals only, set in code or by users.
 - **Drill down**: double-click a cell, or press Enter, to list the records behind it. Search and sort them, choose the columns, edit a cell in place or run Filament actions such as edit and delete without leaving the list: the totals update when you save. Link to each record and to another screen for the same records.
 - **Export and print**: Excel (.xlsx) with merged headers, frozen labels and number formats, CSV, PDF, PNG of the table or the chart, HTML, and printing with the headers repeated on every page, all with a header and footer (title, date, page numbers). Hand files to the server instead of downloading them, and save or open a layout as a file. Full-screen mode.
 - **Context menus**: right-click a header to expand or collapse its level, sort or filter it, or a cell to list its records, copy it, change how its value is shown or run your own Filament actions.
 - **Hooks for developers**: Filament actions on cells with the records of the cell, a JavaScript API (state, layout, filters, cells, chart data for other chart libraries), events for clicks, data and changes, and hooks to draw cells and build the context menu your way.
-- **Browser tests**: `cellPoint()` tells a Playwright test where a cell is on the canvas and what it shows, and `whenIdle()` waits until the totals, the drill-down or a save have finished.
+- **Browser tests**: `cellPoint()` tells a Playwright test where a cell is on the canvas and what it shows, `rowHeaderRect()` and `fieldRect()` where a row header and a field of the field panel are, and `whenIdle()` waits until the totals, the drill-down or a save have finished.
 - **Filament inside**: Filament table filters, policies (`viewAny`, `update`, `delete`), tenancy, actions, notifications, dark mode and translations (English, Japanese, German, French, Spanish, Italian, Brazilian Portuguese, Korean and Chinese, simplified and traditional).
 - **Keyboard and screen readers**: arrow keys, Shift to extend a selection, Ctrl/Cmd+A and Ctrl/Cmd+C (tab-separated, ready to paste into a spreadsheet), and a live count, sum and average of the selection. The visible cells are exposed as an ARIA grid.
 
@@ -245,6 +245,25 @@ Sum::make('balance')->negativeInParentheses()->blankAs('—')->divisionByZeroAs(
 
 A measure's name defaults to `column_function` (`amount_sum`); set another with `name()`, for example when the same column appears twice. Users can change how each value is shown in the field panel.
 
+#### Money stored in cents
+
+If you store amounts as whole cents (an `integer` column, `4499` for $44.99), pass `divideBy`, like Filament's `TextColumn::money()`:
+
+```php
+$pivot->values([
+    Sum::make('line_total')->label('Sales')->money('USD', divideBy: 100),
+    Avg::make('line_total')->label('Average order')->money('USD', divideBy: 100),
+    Formula::make('unit_price')->formula('[line_total_sum] / [quantity_sum]')->money('USD'),
+]);
+```
+
+- The database adds up the cents as integers, and each cell is divided once, after it is added up. A cell is then exactly 44.99, never 44.9999998, on screen, in the Excel cell and in the CSV. Dividing in the query instead (`->expression('line_total / 100.0')`) adds up decimals and leaves those tails.
+- Everything after the totals sees the divided value: formulas (`[line_total_sum]` above is in dollars), ratios, "Show values as", conditional formatting and value conditions in filters (a user who keeps the stores with sales over 5,000 types dollars).
+- Counts are never divided, also when a user switches a value to a count in the field panel. Standard deviations are divided by `divideBy`, variances by its square and products by its power, so they stay in the unit of the money.
+- `divideBy()` alone divides without a currency (`Sum::make('duration_ms')->divideBy(1000)->suffix(' s')`). It refuses 0.
+- In Excel, an amount with a currency gets the decimals of that currency (two for USD and EUR, none for JPY) unless you set `decimals()`, like on screen.
+- The drill-down lists the records themselves, still in cents: format those columns with `DrillDownFormat::money('USD', divideBy: 100)` (see [Dates and formats in the drill-down](#dates-and-formats-in-the-drill-down)).
+
 Color cells with `heatmap('success', 'danger')` (high and low colors), `dataBars()` and `colorWhen('<', 0, 'danger')` (add `background: true` to fill the cell instead of coloring the text). Colors are Filament color names. Heatmaps and data bars are scaled to the innermost visible cells (closed groups included), without subtotals and totals.
 
 `formatWhen()` takes a condition written like a calculated value, where `[value]` is the cell and `[name]` another value of the same cell, and sets a color, bold or italic, for all cells, the values only (`scope: 'cells'`) or the subtotals and totals only (`scope: 'totals'`):
@@ -318,7 +337,31 @@ $pivot
     ->expandable(false);                                     // keep the headers as defaultExpanded() opens them
 ```
 
-Users change these in the layout options and chart menus of the toolbar; they are saved with the layout and kept in the URL. The chart shows the same result as the table: the innermost visible rows are its categories and the innermost visible columns of one value its series (up to eight). Turn charts off with `charts(false)`.
+Users change these in the layout options and chart menus of the toolbar; they are saved with the layout and kept in the URL.
+
+#### Values in rows
+
+With several values and many columns (sales, cost, margin and margin % for each of twelve months make 48 columns), put the values in rows instead: each row header gets one row per value, and each column header one column.
+
+```php
+$pivot
+    ->rows([Relationship::make('product.category')->label('Category')])
+    ->columns([Date::make('ordered_at')->month()->label('Month')])
+    ->values([
+        Sum::make('line_total')->label('Sales')->money('USD', divideBy: 100),
+        Sum::make('cost')->label('Cost')->money('USD', divideBy: 100),
+        Ratio::make('margin_percent')->of(Sum::make('margin'), Sum::make('line_total'))->percent()->label('Margin %'),
+    ])
+    ->valuesOn('rows');                                      // 'columns' is the default
+```
+
+- Users move the values with the "Σ Values" field of the field panel, as in Excel: drag it between Rows and Columns, or click its arrow. It is shown when there are two values or more, and it is saved with the layout and kept in the URL as `valuesAxis` (`setLayout({ ..., valuesAxis: 'rows' })` in JavaScript).
+- The names of the values get a column of their own at the right of the row headers. The row header is written on the first value row; the triangle to open it is there too.
+- Totals, subtotals, formats, heatmaps (scaled per value) and conditional formatting are the same as with the values in columns. Excel, CSV, PDF, PNG, HTML and print exports write the same rows, with a "Values" column in Excel and CSV.
+- Clicking a column header sorts the row headers by their **first** value in that column; the value rows of a header stay together.
+- The chart is drawn as with the values in columns (rows as categories, the chosen value per column as series).
+- With one value, rows and columns give the same table.
+ The chart shows the same result as the table: the innermost visible rows are its categories and the innermost visible columns of one value its series (up to eight). Turn charts off with `charts(false)`.
 
 ### Opening headers
 
@@ -518,7 +561,7 @@ it('shows only the sales of the current team', function () {
     $grandTotal = collect($data['cells'])->first(fn (array $cell) => $cell[0] === 0 && $cell[1] === 0)[2];
 
     expect($grandTotal)->toBe(650)
-        ->and(array_column($data['rows']['c'], 'l'))->toBe(['Sendai', 'Tokyo']);   // the stores in the rows
+        ->and(array_column($data['rows']['c'], 'l'))->toBe(['Austin', 'Boston']);   // the stores in the rows
 });
 
 it('shows the other team its own sales', function () {
@@ -548,7 +591,7 @@ On pages, the current layout is also kept in the `pivot` query string parameter,
 
 Double-click a cell (or press Enter) to list the records behind it, 25 per page.
 
-![The sales behind a cell, searched for Tokyo, sorted by amount, with a quantity being edited in place](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/drill-down.png)
+![The sales behind a cell, searched for "Flagship", sorted by amount, with a quantity being edited in place](https://raw.githubusercontent.com/qalainau-labs/filament-warp-pivot-docs/main/art/drill-down.png)
 
 ```php
 use Filament\Actions\DeleteAction;
@@ -613,6 +656,27 @@ $pivot
 - Columns of numbers are aligned to the right. A column whose text looks like an amount or a percentage (`$1,234.00`, `-12.5%`, `¥1,000`, `(1,234)`) is aligned to the right too.
 - An editable column (`drillDownEditable()`) shows the formatted text, and its input still starts with the value itself (`1250`, not `$12.50`). After saving, the new value is formatted the same way.
 - The formats are for the drill-down list only. The pivot's own values are formatted with the methods of the values (`money()`, `decimals()`, `percent()`), and those are what the export writes.
+
+For amounts stored in cents, `DrillDownFormat::money()` gives the closure, with the same arguments as the values' `money()`. It formats in the app's locale and leaves empty values blank:
+
+```php
+use Qalainau\FilamentWarpPivot\Support\DrillDownFormat;
+
+$pivot->drillDownFormats([
+    'line_total' => DrillDownFormat::money('USD', divideBy: 100),   // 123456 → $1,234.56
+    'unit_cost' => DrillDownFormat::money('USD', divideBy: 100, decimals: 4),
+]);
+```
+
+Columns of short values (numbers, dates, and text of up to 20 characters on the page, such as order numbers `SO-2026-00682` and store names) stay on one line. Only columns with longer text (product names, notes) wrap, so a long name gives way instead of the numbers. The dialog is `Width::SevenExtraLarge` wide; change it with `drillDownModalWidth()`:
+
+```php
+use Filament\Support\Enums\Width;
+
+$pivot->drillDownModalWidth(Width::FiveExtraLarge);
+```
+
+When the columns do not fit, the list scrolls sideways.
 
 When records are changed from a drill-down or a cell action, other pivots on the same page that read the same table (two widgets on a dashboard, say) are queried again too.
 
@@ -686,14 +750,14 @@ document.addEventListener('warp-pivot:ready', (event) => {
 document.addEventListener('warp-pivot:cell-click', (event) => console.log(event.detail))
 ```
 
-- Methods: `refresh()`, `getState()`, `setState(state)`, `setLayout(layout)`, `setDisplay(changes)`, `setFilter(dimension, { filter, condition, sort, limit })`, `expandAll()`, `collapseAll()`, `getCell(row, column)`, `getSelection()`, `getChartData(measure)`, `customizeCell(fn)`, `customizeContextMenu(fn)`, `print()`, and `cellPoint(cell)` and `whenIdle()` for browser tests (see [Browser tests (JavaScript)](#browser-tests-javascript)).
+- Methods: `refresh()`, `getState()`, `setState(state)`, `setLayout(layout)`, `setDisplay(changes)`, `setFilter(dimension, { filter, condition, sort, limit })`, `expandAll()`, `collapseAll()`, `getCell(row, column)`, `getSelection()`, `getChartData(measure)`, `customizeCell(fn)`, `customizeContextMenu(fn)`, `print()`, and `cellPoint(cell)`, `rowHeaderRect(row)`, `fieldRect(name)` and `whenIdle()` for browser tests (see [Browser tests (JavaScript)](#browser-tests-javascript)).
 - Events (bubbling from the pivot to `document`): `warp-pivot:ready`, `warp-pivot:data-loaded`, `warp-pivot:state-changed`, `warp-pivot:cell-click` and `warp-pivot:cell-dblclick`. Cells carry `row` and `column` (header paths), `rowLabel`, `columnLabel`, `conditions`, `measure`, `value`, `text` and `kind` (`cell`, `subtotal` or `total`).
 - `customizeCell()` is called for every visible cell each time the pivot is drawn, so keep it quick. Colors are Filament color names or CSS colors.
 - To draw the result with another chart library, read `getChartData()` (categories and series of the visible rows and columns) after `warp-pivot:data-loaded`.
 
 ## Browser tests (JavaScript)
 
-The table is drawn on a canvas, so there are no cell elements to find in the page. Ask the pivot where a cell is and what it shows, and wait until it has finished loading, with two methods on the pivot's Alpine data (also on the element's `warpPivot` API above). A test with Playwright, for the example in *Usage*:
+The table is drawn on a canvas, so there are no cell elements to find in the page. Ask the pivot where a cell, a row header or a field is and what it shows, and wait until it has finished loading, with these methods on the pivot's Alpine data (also on the element's `warpPivot` API above). A test with Playwright, for the example in *Usage*:
 
 ```js
 const pivot = (method, arg) =>
@@ -704,32 +768,55 @@ await page.waitForFunction(() => document.querySelector('.fi-warp-pvt')?.warpPiv
 await pivot('whenIdle')                                                              // the totals have arrived
 
 const total = await pivot('cellPoint', { row: [] })
-// { row: [], column: [], measure: 'amount_sum', value: 82050535550, text: '¥82,050,535,550', x: 1295.5, y: 580, left: 1238, top: 564, width: 115, height: 32, visible: true }
+// { row: [], column: [], measure: 'amount_sum', value: 9547196.4, text: '$9,547,196.40', x: 1295.5, y: 580, left: 1238, top: 564, width: 115, height: 32, visible: true }
 
-// Kanto × 2025: rows by their label, columns by their key
-const cell = await pivot('cellPoint', { row: 'Kanto', column: ['2025'], measure: 'amount_sum' })
-expect(cell.text).toBe('¥19,875,230,100')
+// South × 2025: rows by their label, columns by their key
+const cell = await pivot('cellPoint', { row: 'South', column: ['2025'], measure: 'amount_sum' })
+expect(cell.text).toBe('$1,174,883.07')
 
-// open Kanto (select the cell, then Space) and wait for the new totals
+// open South (select the cell, then Space) and wait for the new totals
 await page.mouse.click(cell.x, cell.y)
 await page.keyboard.press('Space')
 await pivot('whenIdle')
 
-// list the records of Tokyo × 2025
-const tokyo = await pivot('cellPoint', { row: 'Tokyo', column: ['2025'] })
-await page.mouse.dblclick(tokyo.x, tokyo.y)
+// list the records of Texas × 2025
+const texas = await pivot('cellPoint', { row: 'Texas', column: ['2025'] })
+await page.mouse.dblclick(texas.x, texas.y)
 await pivot('whenIdle')
 await expect(page.locator('.fi-warp-pvt-drill-table tbody tr').first()).toBeVisible()
+await page.keyboard.press('Escape')
+
+// close South again with its triangle
+const south = await pivot('rowHeaderRect', 'South')
+// { row: ['3'], label: 'South', measure: null, kind: 'group', expanded: true, x: 431, y: 452, left: 352, top: 436, width: 158, height: 32, toggle: { x: 366, y: 452 }, visible: true }
+await page.mouse.click(south.toggle.x, south.toggle.y)
+await pivot('whenIdle')
+
+// drag the State field from the rows to the columns in the field panel
+await page.getByRole('button', { name: 'Fields' }).click()
+const state = await pivot('fieldRect', 'store.state')   // { name, zone: 'rows', x, y, left, top, width, height, visible }
+const columns = await page.locator('[data-warp-pvt-zone="columns"]').boundingBox()
+await page.mouse.move(state.x, state.y)
+await page.mouse.down()
+await page.mouse.move(columns.x + columns.width / 2, columns.y + 12, { steps: 10 })
+await page.mouse.up()
+await pivot('whenIdle')
 ```
 
 - **`cellPoint({ row, column, measure })`** — returns a promise with the cell's position and what it shows.
-  - `row` is the path of the row header: the keys of its dimensions from the outside in (`['3', '13']` for a prefecture in a region, keys as strings or numbers), or `[]` for the grand total row. It can also be the label shown in the header (`'Tokyo'`); when several rows have the same label (the same month in two years), the top one is used, so pass the path then.
+  - `row` is the path of the row header: the keys of its dimensions from the outside in (`['3', '13']` for a state in a region, keys as strings or numbers), or `[]` for the grand total row. It can also be the label shown in the header (`'Texas'`); when several rows have the same label (the same month in two years), the top one is used, so pass the path then.
   - `column` is the same for the column headers: a path (`['2025']`, `[]` for the grand total column), or the label of the column header (`'2025'`, not the label of a value). Leave it out for the grand total column, the only column when the pivot has no column dimensions.
   - `measure` is the name of a value (`'amount_sum'`, as in `getState()` and formulas) or its position from 0. Leave it out for the first value.
   - The keys are the ones in the URL state and in `warpPivotFetch()` (`k` in the header trees): the ID for a relationship, the value for a column, `'2025'` for a year and `'2025-03'` for a month. Empty values have the key `null`.
   - It returns `{ row, column, measure, value, text, x, y, left, top, width, height, visible }`: the paths and measure name of the cell found, the number (`null` for an empty cell) and the text drawn in the cell (with formats and `customizeCell()`), the center (`x`, `y`) and the box in the same viewport pixels as `getBoundingClientRect()`, and whether the center can be clicked.
   - If the cell is out of view, the pivot (and the page) scroll it into view first, so a click at `x`, `y` lands on it. Pass `{ scroll: false }` as a second argument to measure without scrolling.
   - It returns `null` for a header that does not exist or is inside a closed header, a hidden grand total, a value that is not shown, before the totals arrive, and while only the chart is shown.
+- **`rowHeaderRect(row, { measure, scroll })`** — returns a promise with the position of a row header.
+  - `row` is a path or a label, as in `cellPoint()`. In the classic and flat forms, an open group's label is on its first child row, and that is what is returned.
+  - It returns `{ row, label, measure, kind, expanded, x, y, left, top, width, height, toggle, visible }`: the path, the label, the value of the row when the values are in rows (`null` otherwise), `group`, `leaf`, `subtotal` or `total`, whether the header is open, the center and the box of the header's cell in viewport pixels, and the center of its open/close triangle (`null` when it has none).
+  - With the values in rows, `measure` (a name or a position) picks the value row; it defaults to the first one, where the label and the triangle are.
+  - It scrolls the header into view first unless you pass `scroll: false`, and returns `null` for a header that is not shown and while only the chart is shown.
+- **`fieldRect(name, { scroll })`** — returns a promise with the position of a field in the field panel: a dimension or measure by its name (`'store.state'`, `'amount_sum'`), or `':values'` for the "Σ Values" field. It returns `{ name, zone, x, y, left, top, width, height, visible }`, where `zone` is `rows`, `columns`, `filters`, `values` or `unused`. It is `null` while the field panel is closed and for a field that is not there. It scrolls the panel to the field first unless you pass `scroll: false`.
 - **`whenIdle({ timeout })`** — returns a promise that resolves when the pivot has no query running (totals, filter values, the drill-down list, a saved layout, a formula check, a drill-down cell being saved) and has been drawn again. Call it after anything that loads: opening the page, opening or closing a header, a filter, dragging a field, a save. It rejects after 10 seconds; `whenIdle({ timeout: 30000 })` waits longer for large tables.
 - Look the pivot up again for each call, as above: Livewire can replace the element. With several pivots on one page, use `document.querySelectorAll('.fi-warp-pvt')[n]`.
 - The drill-down list, the field panel and the menus are HTML, so use Playwright's locators for them.
@@ -752,7 +839,8 @@ Click a row or column header to open or close it, and click a value header to so
 ## Limitations
 
 - Distinct counts cannot be added up, so each visible level is queried separately when they are shown, and "Other" headers show no distinct count.
-- Sorting by a column happens in the browser for the loaded rows. `orderByValue()` and `limit()` sort on the server.
+- Sorting by a column happens in the browser for the loaded rows. `orderByValue()` and `limit()` sort on the server. With the values in rows, a column sorts by the first value.
+- "Σ Values" is always the innermost level of the rows or columns; it cannot be placed between two dimensions.
 - The drill-down list shows record attributes as text; it is not a Filament table. Format the text with `drillDownFormats()`, and use `drillDownEditable()` and `drillDownRecordActions()` to edit records from it.
 - Medians are queried for every visible level with window functions (MySQL 8, MariaDB 10.2, SQLite 3.25, PostgreSQL), which takes longer than sums on large tables. Products use `ln()`, which SQLite has from 3.35 when built with its math functions.
 - PDFs contain the pages as images: the text in them cannot be selected or searched.

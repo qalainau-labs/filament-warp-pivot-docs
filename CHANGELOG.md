@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-06
+
+### Added
+
+- `money('USD', divideBy: 100)` (and `divideBy()`) for amounts stored in cents: the integers are added up in SQL and each
+  cell is divided once, so screens, formulas, filters and Excel cells get exact values (no `44.9999998`).
+- `DrillDownFormat::money('USD', divideBy: 100)` formats drill-down columns of cents in `drillDownFormats()`.
+- Values in rows: `valuesOn('rows')`, and a "Σ Values" field in the field panel to drag between Rows and Columns
+  (saved as `valuesAxis` in the layout). Exports, totals, sorting and the chart work with it.
+- `drillDownModalWidth()` changes the width of the drill-down dialog.
+- Browser tests: `rowHeaderRect(row)` gives the position of a row header and its open/close triangle, and
+  `fieldRect(name)` the position of a field in the field panel.
+
+### Changed
+
+- The drill-down dialog is wider (`Width::SevenExtraLarge`, was `FiveExtraLarge`), and columns of short values
+  (numbers, dates, text up to 20 characters such as order numbers) no longer wrap; only long text wraps. Call
+  `drillDownModalWidth(Width::FiveExtraLarge)` for the old width.
+
+### Fixed
+
+- Excel: amounts with a currency get the decimals of the currency (`$#,##0.00` for USD) when `decimals()` is not set,
+  as on screen; they were written with no decimals.
+
 ## [1.5.0] - 2026-11-06
 
 ### Added
