@@ -74,6 +74,7 @@ Whatever is open, the source table is scanned once: the headers under closed hea
 - **Export and print**: Excel (.xlsx) with merged headers, frozen labels and number formats, CSV, PDF, PNG of the table or the chart, HTML, and printing with the headers repeated on every page, all with a header and footer (title, date, page numbers). Hand files to the server instead of downloading them, and save or open a layout as a file. Full-screen mode.
 - **Context menus**: right-click a header to expand or collapse its level, sort or filter it, or a cell to list its records, copy it, change how its value is shown or run your own Filament actions.
 - **Hooks for developers**: Filament actions on cells with the records of the cell, a JavaScript API (state, layout, filters, cells, chart data for other chart libraries), events for clicks, data and changes, and hooks to draw cells and build the context menu your way.
+- **Browser tests**: `cellPoint()` tells a Playwright test where a cell is on the canvas and what it shows, and `whenIdle()` waits until the totals, the drill-down or a save have finished.
 - **Filament inside**: Filament table filters, policies (`viewAny`, `update`, `delete`), tenancy, actions, notifications, dark mode and translations (English, Japanese, German, French, Spanish, Italian, Brazilian Portuguese, Korean and Chinese, simplified and traditional).
 - **Keyboard and screen readers**: arrow keys, Shift to extend a selection, Ctrl/Cmd+A and Ctrl/Cmd+C (tab-separated, ready to paste into a spreadsheet), and a live count, sum and average of the selection. The visible cells are exposed as an ARIA grid.
 
@@ -685,10 +686,53 @@ document.addEventListener('warp-pivot:ready', (event) => {
 document.addEventListener('warp-pivot:cell-click', (event) => console.log(event.detail))
 ```
 
-- Methods: `refresh()`, `getState()`, `setState(state)`, `setLayout(layout)`, `setDisplay(changes)`, `setFilter(dimension, { filter, condition, sort, limit })`, `expandAll()`, `collapseAll()`, `getCell(row, column)`, `getSelection()`, `getChartData(measure)`, `customizeCell(fn)`, `customizeContextMenu(fn)` and `print()`.
+- Methods: `refresh()`, `getState()`, `setState(state)`, `setLayout(layout)`, `setDisplay(changes)`, `setFilter(dimension, { filter, condition, sort, limit })`, `expandAll()`, `collapseAll()`, `getCell(row, column)`, `getSelection()`, `getChartData(measure)`, `customizeCell(fn)`, `customizeContextMenu(fn)`, `print()`, and `cellPoint(cell)` and `whenIdle()` for browser tests (see [Browser tests (JavaScript)](#browser-tests-javascript)).
 - Events (bubbling from the pivot to `document`): `warp-pivot:ready`, `warp-pivot:data-loaded`, `warp-pivot:state-changed`, `warp-pivot:cell-click` and `warp-pivot:cell-dblclick`. Cells carry `row` and `column` (header paths), `rowLabel`, `columnLabel`, `conditions`, `measure`, `value`, `text` and `kind` (`cell`, `subtotal` or `total`).
 - `customizeCell()` is called for every visible cell each time the pivot is drawn, so keep it quick. Colors are Filament color names or CSS colors.
 - To draw the result with another chart library, read `getChartData()` (categories and series of the visible rows and columns) after `warp-pivot:data-loaded`.
+
+## Browser tests (JavaScript)
+
+The table is drawn on a canvas, so there are no cell elements to find in the page. Ask the pivot where a cell is and what it shows, and wait until it has finished loading, with two methods on the pivot's Alpine data (also on the element's `warpPivot` API above). A test with Playwright, for the example in *Usage*:
+
+```js
+const pivot = (method, arg) =>
+    page.evaluate(([method, arg]) => Alpine.$data(document.querySelector('.fi-warp-pvt'))[method](arg), [method, arg])
+
+await page.goto('/admin/sales-pivot')
+await page.waitForFunction(() => document.querySelector('.fi-warp-pvt')?.warpPivot) // the script has loaded
+await pivot('whenIdle')                                                              // the totals have arrived
+
+const total = await pivot('cellPoint', { row: [] })
+// { row: [], column: [], measure: 'amount_sum', value: 82050535550, text: '¥82,050,535,550', x: 1295.5, y: 580, left: 1238, top: 564, width: 115, height: 32, visible: true }
+
+// Kanto × 2025: rows by their label, columns by their key
+const cell = await pivot('cellPoint', { row: 'Kanto', column: ['2025'], measure: 'amount_sum' })
+expect(cell.text).toBe('¥19,875,230,100')
+
+// open Kanto (select the cell, then Space) and wait for the new totals
+await page.mouse.click(cell.x, cell.y)
+await page.keyboard.press('Space')
+await pivot('whenIdle')
+
+// list the records of Tokyo × 2025
+const tokyo = await pivot('cellPoint', { row: 'Tokyo', column: ['2025'] })
+await page.mouse.dblclick(tokyo.x, tokyo.y)
+await pivot('whenIdle')
+await expect(page.locator('.fi-warp-pvt-drill-table tbody tr').first()).toBeVisible()
+```
+
+- **`cellPoint({ row, column, measure })`** — returns a promise with the cell's position and what it shows.
+  - `row` is the path of the row header: the keys of its dimensions from the outside in (`['3', '13']` for a prefecture in a region, keys as strings or numbers), or `[]` for the grand total row. It can also be the label shown in the header (`'Tokyo'`); when several rows have the same label (the same month in two years), the top one is used, so pass the path then.
+  - `column` is the same for the column headers: a path (`['2025']`, `[]` for the grand total column), or the label of the column header (`'2025'`, not the label of a value). Leave it out for the grand total column, the only column when the pivot has no column dimensions.
+  - `measure` is the name of a value (`'amount_sum'`, as in `getState()` and formulas) or its position from 0. Leave it out for the first value.
+  - The keys are the ones in the URL state and in `warpPivotFetch()` (`k` in the header trees): the ID for a relationship, the value for a column, `'2025'` for a year and `'2025-03'` for a month. Empty values have the key `null`.
+  - It returns `{ row, column, measure, value, text, x, y, left, top, width, height, visible }`: the paths and measure name of the cell found, the number (`null` for an empty cell) and the text drawn in the cell (with formats and `customizeCell()`), the center (`x`, `y`) and the box in the same viewport pixels as `getBoundingClientRect()`, and whether the center can be clicked.
+  - If the cell is out of view, the pivot (and the page) scroll it into view first, so a click at `x`, `y` lands on it. Pass `{ scroll: false }` as a second argument to measure without scrolling.
+  - It returns `null` for a header that does not exist or is inside a closed header, a hidden grand total, a value that is not shown, before the totals arrive, and while only the chart is shown.
+- **`whenIdle({ timeout })`** — returns a promise that resolves when the pivot has no query running (totals, filter values, the drill-down list, a saved layout, a formula check, a drill-down cell being saved) and has been drawn again. Call it after anything that loads: opening the page, opening or closing a header, a filter, dragging a field, a save. It rejects after 10 seconds; `whenIdle({ timeout: 30000 })` waits longer for large tables.
+- Look the pivot up again for each call, as above: Livewire can replace the element. With several pivots on one page, use `document.querySelectorAll('.fi-warp-pvt')[n]`.
+- The drill-down list, the field panel and the menus are HTML, so use Playwright's locators for them.
 
 ## Keyboard
 

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-06
+
+### Added
+
+- Browser tests: `cellPoint({ row, column, measure })` gives the position of a cell (found by header paths or labels)
+  to click, with its value and text, and `whenIdle()` waits until queries, the drill-down and saves have finished.
+
 ## [1.4.1] - 2026-11-06
 
 ### Fixed
