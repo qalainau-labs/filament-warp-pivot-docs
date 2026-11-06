@@ -107,6 +107,33 @@ The migration creates one table, `warp_pivot_views`, for the layouts users save.
 
 > Run `php artisan filament:assets` again after every update of the package.
 
+### AI coding assistants (Laravel Boost)
+
+Warp Pivot ships instructions for AI coding assistants such as Claude Code, Cursor and Codex. If your app uses
+[Laravel Boost](https://laravel.com/docs/boost), the assistant learns how to use Warp Pivot from them: which classes to extend, how to compute ratios and margins that stay right in subtotals, what is easy to get wrong, and how to test a pivot.
+
+- **Guidelines** (`resources/boost/guidelines/core.md`): a short summary that Boost adds to `CLAUDE.md`,
+  `AGENTS.md` and the other agent files. It also points the assistant to this README in `vendor/`, so it reads the
+  documentation of the version you have installed instead of guessing.
+- **Skill** `warp-pivot-development` (`resources/boost/skills/`): the steps for adding a pivot, values that stay right in subtotals (margins, unit prices, money in cents), access, drill-down, and writing feature and browser tests. The assistant loads it when it works on a pivot.
+
+Boost does not add guidelines of other vendors' packages on its own. When `php artisan boost:install` asks
+"Which third-party AI guidelines/skills would you like to install?", select `qalainau/filament-warp-pivot`. To do
+it without the question, add the package to `boost.json` and run the command again:
+
+```json
+{
+    "packages": ["qalainau/filament-warp-pivot"]
+}
+```
+
+```bash
+php artisan boost:install --guidelines --skills -n
+```
+
+After you update Warp Pivot, run `php artisan boost:update` so the assistant gets the instructions of the new
+version.
+
 ## Usage
 
 ### Where to put a pivot
@@ -390,6 +417,81 @@ Things to know:
 - Filters you write yourself are your queries. A `SelectFilter::make('store')->relationship('store', 'name')` lists every store, unless the `Store` model has a resource in the panel. When stores belong to a team, keep the list to the tenant with the third argument: `->relationship('store', 'name', fn (Builder $query) => $query->whereBelongsTo(Filament::getTenant()))`.
 - Validation rules for `drillDownEditable()` are plain Laravel rules. For a value that must be unique within a team, add the tenant to the rule: `Rule::unique('sales', 'code')->where('team_id', Filament::getTenant()->getKey())`.
 - A pivot on a Livewire component outside a panel has no current tenant, so nothing is filtered. Filter the query yourself there.
+
+#### Adding tenancy to an app that already has saved layouts
+
+Layouts saved before the panel had tenancy have no tenant, so once you add `->tenant(...)` to the panel, no team sees them. They are not deleted, only hidden. Give them to one tenant with an Artisan command:
+
+```bash
+# See what would change: the tables and how many rows have no tenant. Nothing is changed.
+php artisan warp:assign-tenant "App\Models\Team" 1 --dry-run
+
+# Give those rows to the team with the key 1
+php artisan warp:assign-tenant "App\Models\Team" 1
+```
+
+- The first argument is the tenant model's class or its morph alias, the second its key. The command stops if there is no such record.
+- Only rows without a tenant are changed. Rows that already belong to a team are left as they are.
+- It covers every installed Warp plugin at once: Warp Pivot's `warp_pivot_views`, and the tables of Warp Sheet, Warp Floor and the others if they are installed. Every plugin registers the same command, so you run it once.
+- Everything happens in one database transaction. If one row can't be moved (another plugin's row would clash with a row the tenant already has), nothing is changed and the command says why.
+- `custom` in place of the model (`php artisan warp:assign-tenant custom acme`) is for plugins that keep a tenant key without a model (`tenantKeyUsing()` in Warp Floor, for example). Warp Pivot's layouts belong to the panel's tenant model, so name the model for them.
+
+#### Testing with tenancy
+
+A record or saved layout of another tenant is treated as if it did not exist. There is no special "wrong tenant" error and no 403: it is left out of the totals, and anything that looks it up by its key gets the same answer as for a key that does not exist. So in your tests, don't expect an exception; check what the tenant sees.
+
+| What the test does with another tenant's key | What happens (the same as for a missing key) |
+| --- | --- |
+| Totals, drill-down, filter lists, export | The record is not counted or listed |
+| Edit a drill-down cell (`drillDownEditable()`) | 404: `->call('warpPivotUpdateDrillDownRecord', $key, 'amount', 1)->assertNotFound()` |
+| A record action (`EditAction`, `DeleteAction`) | Filament can't find the record: `ActionNotResolvableException` in a test |
+| Open or delete a saved layout | `warpPivotApplyView($id)` returns `null`, `warpPivotDeleteView($id)` returns `false` |
+
+Livewire tests don't go through the tenant's URL, so set the panel and the tenant yourself. The totals come from `warpPivotFetch()`, the same call the browser makes: each cell is `[row, column, value of the first measure, value of the second measure, …]`, and the row and column `0` are the grand totals. The row headers are the nodes under `rows`, with the label in `l`.
+
+```php
+use Filament\Facades\Filament;
+use Livewire\Livewire;
+
+beforeEach(function () {
+    $this->acme = Team::create(['name' => 'Acme', 'slug' => 'acme']);
+    $this->globex = Team::create(['name' => 'Globex', 'slug' => 'globex']);
+
+    // Sales of both teams …
+
+    $user = User::factory()->create();
+    $user->teams()->attach([$this->acme->id, $this->globex->id]);
+    $this->actingAs($user);
+
+    Filament::setCurrentPanel('app');
+    Filament::setTenant($this->acme);
+});
+
+it('shows only the sales of the current team', function () {
+    $data = Livewire::test(SalesReport::class)->instance()->warpPivotFetch();
+
+    $grandTotal = collect($data['cells'])->first(fn (array $cell) => $cell[0] === 0 && $cell[1] === 0)[2];
+
+    expect($grandTotal)->toBe(650)
+        ->and(array_column($data['rows']['c'], 'l'))->toBe(['Sendai', 'Tokyo']);   // the stores in the rows
+});
+
+it('shows the other team its own sales', function () {
+    Filament::setTenant($this->globex);
+
+    $data = Livewire::test(SalesReport::class)->instance()->warpPivotFetch();
+
+    expect(array_column($data['rows']['c'], 'l'))->toBe(['Osaka']);
+});
+
+it('does not open a layout of another team', function () {
+    $view = PivotView::create([/* … */ 'tenant_type' => $this->globex->getMorphClass(), 'tenant_id' => $this->globex->id]);
+
+    expect(Livewire::test(SalesReport::class)->instance()->warpPivotApplyView($view->id))->toBeNull();
+});
+```
+
+To test the page as a whole, request its URL with the tenant in it: `$this->get(SalesReport::getUrl(tenant: $this->acme))->assertOk()`. A team the user doesn't belong to gets a 404 from Filament.
 
 ### Layouts
 
