@@ -189,7 +189,22 @@ Bins::make('amount')->ranges([1000, 5000, 20000]);           // under 1,000 … 
 Expression::make('size')->sql("case when amount >= 5000 then 'large' else 'small' end");
 ```
 
-Every dimension accepts `label()`, `formatLabelUsing(fn (string $value, string $label): string => …)`, `orderByValue()` (largest total first) and `limit(10)` (the ten largest per group, the rest as "Other"). Several `Date` dimensions on the same column are named `column:granularity`, such as `sold_at:year` and `sold_at:month`.
+Every dimension accepts `label()`, `formatLabelUsing(fn (string $value, string $label): string => …)`, `orderByValue()` (largest total first) and `limit(10)` (the ten largest per group, the rest as "Other").
+
+`rows()` and `columns()` take the dimension itself, or the name of one registered with `dimensions()`. A name that was not registered stops the pivot with `The pivot has no dimension named [store].`
+
+```php
+$pivot
+    ->dimensions([Relationship::make('store'), Date::make('ordered_at')->year(), Date::make('ordered_at')->month()])
+    ->rows(['store'])
+    ->columns(['ordered_at:month']);
+```
+
+Names of dimensions:
+
+- Most dimensions are named after what you pass to `make()`: `channel`, `store`, `store.region`.
+- A `Date` dimension is always named `column:granularity`, even when it is the only one on that column: `ordered_at:month`, `ordered_at:year`. `ordered_at` alone is not a name. The granularities are `year`, `quarter`, `month`, `week`, `day`, `hour`, `month_of_year`, `quarter_of_year`, `day_of_week` and `hour_of_day` (so `dayOfWeek()` is `ordered_at:day_of_week`).
+- Use the same name wherever a dimension is named: in `rows()` and `columns()`, in the `$conditions` of `drillDownUrl()` and of cell actions (`['ordered_at:month' => …]`), in the layout that `warpPivotFetch()` takes, and in tests (`$data['dimensions']['rows'][0]['name']` is `ordered_at:month`).
 
 Relationships are grouped by their foreign key, and their labels are read afterwards, so a `belongsTo` with a million rows behind it costs nothing extra. Only the relationships in the middle of a path are joined.
 
@@ -325,7 +340,31 @@ $pivot->filters([
 ]);
 ```
 
-When the model has a policy, `viewAny` decides who may see the pivot. Override it with `authorize(fn (): bool => …)`.
+When the model has a policy, `viewAny` decides who may see the pivot's data. Override it with `authorize(fn (): bool => …)`.
+
+This only guards the data. When `viewAny` (or `authorize()`) says no, the calls that load the totals, the drill-down, the filter lists and the export answer 403, but the page itself still opens and stays in the navigation. To lock the page and hide it from the navigation as well, add Filament's `canAccess()` to the page:
+
+```php
+use App\Models\Sale;
+use Illuminate\Support\Facades\Gate;
+
+class SalesReport extends PivotPage
+{
+    public static function canAccess(): bool
+    {
+        return Gate::allows('viewAny', Sale::class);
+    }
+
+    public function pivot(Pivot $pivot): Pivot
+    {
+        return $pivot->query(Sale::class)->values([Sum::make('amount')]);
+    }
+}
+```
+
+- With `canAccess()` returning `false`, opening the page's URL gives a 403 and the page is not in the navigation. This is Filament's own page check.
+- Keep the policy too: it is what refuses the data calls, which are sent to the page's Livewire component directly.
+- A `PivotWidget` has `canView()` instead (Filament's widget check).
 
 ### Tenancy
 
@@ -372,12 +411,17 @@ public function canAccessTenant(Model $tenant): bool
 ```
 
 ```php
+use Qalainau\FilamentWarpPivot\Dimensions\Relationship;
+use Qalainau\FilamentWarpPivot\Measures\Sum;
+use Qalainau\FilamentWarpPivot\Pages\PivotPage;
+use Qalainau\FilamentWarpPivot\Pivot;
+
 class SalesReport extends PivotPage
 {
     public function pivot(Pivot $pivot): Pivot
     {
         // No where('team_id', …) needed
-        return $pivot->query(Sale::class)->rows(['store'])->values([Sum::make('amount')]);
+        return $pivot->query(Sale::class)->rows([Relationship::make('store')])->values([Sum::make('amount')]);
     }
 }
 ```

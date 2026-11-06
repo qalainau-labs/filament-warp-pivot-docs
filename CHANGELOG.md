@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-06
+
+### Fixed
+
+- README: the "Tenancy" example put `rows(['store'])` without registering `store` in `dimensions()`, so it stopped with
+  "The pivot has no dimension named [store]". It now passes `Relationship::make('store')`.
+
+### Changed
+
+- README, "Filters and permissions": the policy's `viewAny` (and `authorize()`) only refuse the pivot's data calls with
+  a 403; the page still opens and stays in the navigation. An example shows Filament's `canAccess()` on the page to lock
+  it and hide it from the navigation.
+- README, "Dimensions": strings in `rows()` and `columns()` must be registered names, and a `Date` dimension is always
+  named `column:granularity` (`ordered_at:month`), even alone, in `rows()`, `columns()`, `$conditions` and tests.
+
 ## [1.4.0] - 2026-11-06
 
 ### Added
