@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-07
+
+### Fixed
+
+- Two different measures with the same name in one `values()` or `measures()` call (a share of sales written as
+  `Sum::make('amount')->showAs(...)` next to `Sum::make('amount')`, without `name()`) no longer replace each other
+  silently, which made the Sales column disappear and showed the share twice. The pivot now stops with
+  `The pivot has two measures named [amount_sum]` and says to give the second one its own `name()`. Passing the same
+  measure again, or a measure of the same name in a later call (a page changing the values of its parent), still works.
+
+### Documentation
+
+- README "Money stored in cents": divide every amount a formula combines in the same way (`divideBy()` on the cost too),
+  or the formula subtracts cents from dollars.
+- README "Dimensions": dates are read in `app.timezone` and grouped in the dimension's timezone; how to report in Tokyo
+  time with dates stored in UTC.
+- README "Cell actions": what `$arguments` holds, why to use `cellQuery()` instead of rebuilding the records from
+  `conditions`, and a new section "Testing cell actions" (`callAction(TestAction::make(...)->table()->arguments([...]))`).
+- Laravel Boost guidelines and skill: the same three points.
+
 ## [1.6.0] - 2026-11-06
 
 ### Added

@@ -209,6 +209,8 @@ Names of dimensions:
 
 Relationships are grouped by their foreign key, and their labels are read afterwards, so a `belongsTo` with a million rows behind it costs nothing extra. Only the relationships in the middle of a path are joined.
 
+Dates and time zones: the pivot reads the stored dates in `config('app.timezone')`, the timezone Laravel saves them in, and groups them by the clock of the dimension's timezone: `timezone()`, else Filament's `FilamentTimezone`, else `app.timezone`. For dates stored in UTC and a report in Tokyo time, keep `app.timezone` at `UTC` and call `->timezone('Asia/Tokyo')` (or `FilamentTimezone::set('Asia/Tokyo')` for every date of the panel). A sale stored as `2026-03-31 15:30:00` is then in April (00:30 on 1 April in Tokyo). Setting `app.timezone` to `Asia/Tokyo` instead would make the pivot read the stored UTC times as Tokyo times.
+
 ### Measures
 
 ```php
@@ -245,6 +247,8 @@ Sum::make('balance')->negativeInParentheses()->blankAs('—')->divisionByZeroAs(
 
 A measure's name defaults to `column_function` (`amount_sum`); set another with `name()`, for example when the same column appears twice. Users can change how each value is shown in the field panel.
 
+Two different measures with the same name in one `values()` or `measures()` call stop the pivot with `The pivot has two measures named [amount_sum]`, because the second one would replace the first (the Sales column would disappear behind a share of sales). Give the second one its own `name()`. A later call may pass a measure of the same name again and replaces the earlier one, as when a page changes the values of the page it extends.
+
 #### Money stored in cents
 
 If you store amounts as whole cents (an `integer` column, `4499` for $44.99), pass `divideBy`, like Filament's `TextColumn::money()`:
@@ -259,6 +263,7 @@ $pivot->values([
 
 - The database adds up the cents as integers, and each cell is divided once, after it is added up. A cell is then exactly 44.99, never 44.9999998, on screen, in the Excel cell and in the CSV. Dividing in the query instead (`->expression('line_total / 100.0')`) adds up decimals and leaves those tails.
 - Everything after the totals sees the divided value: formulas (`[line_total_sum]` above is in dollars), ratios, "Show values as", conditional formatting and value conditions in filters (a user who keeps the stores with sales over 5,000 types dollars).
+- So divide every amount that a formula or ratio combines in the same way. With `Sum::make('line_total')->money('USD', divideBy: 100)` and a plain `Sum::make('cost')`, the margin `([line_total_sum] - [cost_sum]) / [line_total_sum]` subtracts cents from dollars. Register the cost as `Sum::make('cost')->divideBy(100)` (in `measures()` if it is not shown), or divide it in the formula (`[cost_sum] / 100`).
 - Counts are never divided, also when a user switches a value to a count in the field panel. Standard deviations are divided by `divideBy`, variances by its square and products by its power, so they stay in the unit of the money.
 - `divideBy()` alone divides without a currency (`Sum::make('duration_ms')->divideBy(1000)->suffix(' s')`). It refuses 0.
 - In Excel, an amount with a currency gets the decimals of that currency (two for USD and EUR, none for JPY) unless you set `decimals()`, like on screen.
@@ -731,6 +736,46 @@ $pivot
 ```
 
 The arguments come from the browser, so check permissions in the action as you would anywhere. When the action finishes, the pivot is queried again.
+
+What `$arguments` holds:
+
+| Key | What it is |
+| --- | --- |
+| `row`, `column` | The header paths of the cell: the keys of its dimensions from the outside in, as in `warpPivotFetch()` (`k` in the header trees): `['3', '13']` for a store in a region, `['2026-04']` for a month. `[]` is the grand total. |
+| `conditions` | Each dimension name of the cell and its key: `['store.region' => '3', 'store' => '13', 'sold_at:month' => '2026-04']`. A `Date` dimension is named `column:granularity`. |
+| `labels` | `['row' => 'Tokyo', 'column' => 'April 2026']`, the header labels shown. |
+| `measure`, `value` | The name of the value the user clicked (`amount_sum`) and its number. |
+| `layout` | The layout on screen when the user rearranged the pivot, else `null`. |
+
+`cellQuery($arguments)` reads `row`, `column` and `layout`, and adds the pivot's query, filters, member filters, timezone and tenant, so use it for the records instead of rebuilding them from `conditions` (a month of `sold_at:month` is a month in the dimension's timezone, which a `whereMonth()` on the stored UTC value is not). Use `conditions` and `labels` for messages and links.
+
+#### Testing cell actions
+
+Cell actions are table actions of the pivot's Livewire component. Call one with Filament's `TestAction`, with the arguments the browser would send:
+
+```php
+use Filament\Actions\Testing\TestAction;
+use Livewire\Livewire;
+
+it('adds a note to the sales of East in April', function () {
+    $data = Livewire::test(SalesReport::class)->instance()->warpPivotFetch();
+    $east = collect($data['rows']['c'])->firstWhere('l', 'East');
+
+    Livewire::test(SalesReport::class)
+        ->callAction(TestAction::make('followUp')->table()->arguments([
+            'row' => [$east['k']],
+            'column' => ['2026-04'],
+            'conditions' => ['store.region' => $east['k'], 'sold_at:month' => '2026-04'],
+            'labels' => ['row' => 'East', 'column' => 'April 2026'],
+            'measure' => 'amount_sum',
+            'value' => null,
+            'layout' => null,
+        ]), data: ['note' => 'Call the store'])
+        ->assertHasNoActionErrors();
+
+    // check what the action did to the records of the cell
+});
+```
 
 ### JavaScript
 
