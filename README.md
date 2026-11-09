@@ -349,6 +349,12 @@ $pivot
 
 Users change these in the layout options and chart menus of the toolbar; they are saved with the layout and kept in the URL.
 
+The table is as tall as its rows, up to `height()` (a number of pixels or a CSS length; by default the height of the window minus the page header): a pivot of five rows does not leave an empty area below them. Opening headers makes it taller until it reaches that height, then it scrolls. With a chart, the pivot always takes the full height.
+
+```php
+$pivot->height(480);                                         // at most 480px tall
+```
+
 #### Values in rows
 
 With several values and many columns (sales, cost, margin and margin % for each of twelve months make 48 columns), put the values in rows instead: each row header gets one row per value, and each column header one column.

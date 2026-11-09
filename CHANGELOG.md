@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-10
+
+### Changed
+
+- A table with few rows is as tall as its rows instead of the full height of the window; `height()` is now the largest height. With a chart, the pivot keeps the full height.
+- Bold from `formatWhen()` and `customizeCell()` is drawn heavier (700) than the subtotals (600), and the numbers of a closed group row are drawn at the normal weight, so a bold cell stands out in every row.
+- The filter dialog names each part of a condition: "Value to compare", "Comparison", "Compare with" and "Period" (in the ten languages).
+- Japanese: the saved layouts button is "保存した表示", so it is no longer confused with "表示の設定" (layout options).
+
+### Fixed
+
+- Slanted category names of a column or line chart are no longer cut on the left (the first name) or at the bottom.
+- Related records with the same `orderBy()` value (a position inside a region, for example) are ordered by their title, the same way on every database.
+
 ## [1.6.1] - 2026-11-07
 
 ### Fixed
