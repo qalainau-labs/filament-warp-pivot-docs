@@ -82,7 +82,7 @@ Whatever is open, the source table is scanned once: the headers under closed hea
 
 - PHP 8.3+
 - Laravel 12 or 13
-- Filament 5.x (Livewire 4)
+- Filament 5.9 or later (Livewire 4)
 - SQLite, MySQL 8.0+, MariaDB 10.11+ or PostgreSQL 14+
 
 ### Tested on
@@ -787,6 +787,30 @@ it('adds a note to the sales of East in April', function () {
     // check what the action did to the records of the cell
 });
 ```
+
+### The result as categories and series
+
+`summarize()` gives the aggregation as plain arrays, for a chart, an API or your own code. Filters, permissions and the tenant scope are the ones of the pivot on the screen.
+
+```php
+$summary = $this->getWarpPivot()->summarize();              // the first row level
+$summary = $this->getWarpPivot()->summarize([$eastId]);     // the level below a row
+$summary = $this->getWarpPivot()->summarize([], 'amount_sum');
+
+// [
+//     'categories' => [['key' => '2', 'label' => 'East', 'other' => false], …],
+//     'series' => [['key' => 'amount_sum', 'label' => 'Amount', 'values' => [650, 1010], 'format' => […]], …],
+//     'path' => [],            // the rows that were opened, with their labels
+//     'level' => 'Region',     // the name of the row level shown
+//     'drillable' => true,     // there is a row level below
+//     'truncated' => false,
+// ]
+```
+
+- The categories are the row headings. The series are the first level of column headings for the first value (or the one you name); without columns there is one series per value.
+- Outside the page or widget (a command, an API, another component), build the pivot from its class: `Pivot::fromComponent(SalesByRegion::class)->summarize()`. The component is not mounted, and its filters have their default values.
+- The path may come straight from a browser: only strings and `null` are taken, and it never goes deeper than the row levels.
+- [Warp Chart](https://warpui.com) draws it with `WarpChart::make('sales')->pivot(SalesByRegion::class)`: a chart of the pivot in a form, a dashboard or a modal, with drill-down through the row levels.
 
 ### JavaScript
 
