@@ -5,6 +5,13 @@ All notable changes to `qalainau/filament-warp-pivot` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-11-14
+
+### Fixed
+
+- Drill-down: columns that show a related value (`store.name`, `order.customer.name`) no longer fail in apps that use `Model::shouldBeStrict()` or `Model::preventLazyLoading()`. The relations of the page's records are now loaded in one query per relation, instead of one query per record.
+- Accessibility: the table for screen readers is now a tree grid (`role="treegrid"`), because its rows have levels and can be expanded. As a grid, the levels of the rows were not valid ARIA.
+
 ## [1.8.0] - 2026-11-12
 
 ### Added
