@@ -195,7 +195,7 @@ Bins::make('amount')->ranges([1000, 5000, 20000]);           // under 1,000 … 
 Expression::make('size')->sql("case when amount >= 5000 then 'large' else 'small' end");
 ```
 
-Every dimension accepts `label()`, `formatLabelUsing(fn (string $value, string $label): string => …)`, `orderByValue()` (largest total first) and `limit(10)` (the ten largest per group, the rest as "Other").
+Every dimension accepts `label()`, `formatLabelUsing(fn (string $value, string $label): string => …)`, `blankLabel('No department')` (the header of records without a value, "(blank)" by default), `orderByValue()` (largest total first) and `limit(10)` (the ten largest per group, the rest as "Other").
 
 `rows()` and `columns()` take the dimension itself, or the name of one registered with `dimensions()`. A name that was not registered stops the pivot with `The pivot has no dimension named [store].`
 
@@ -425,6 +425,54 @@ class SalesReport extends PivotPage
 - With `canAccess()` returning `false`, opening the page's URL gives a 403 and the page is not in the navigation. This is Filament's own page check.
 - Keep the policy too: it is what refuses the data calls, which are sent to the page's Livewire component directly.
 - A `PivotWidget` has `canView()` instead (Filament's widget check).
+
+### Restricting pages per role
+
+When your app has roles such as "can't use this screen", "view only" and "can edit", decide per page who may open it and who may only look. `PivotPage` has two checks for this:
+
+- `canAccess()`: who may open the page (Filament's page check).
+- `canWrite()`: who may change data from the page. `true` by default. Return `false` to make the page view only.
+
+Override them on your page:
+
+```php
+use App\Models\User;
+
+class SalesReport extends PivotPage
+{
+    public static function canAccess(): bool
+    {
+        return parent::canAccess() && auth()->user()?->canOpen(static::class);
+    }
+
+    public static function canWrite(): bool
+    {
+        return parent::canWrite() && ! auth()->user()?->isReadOnlyOn(static::class);
+    }
+
+    public function pivot(Pivot $pivot): Pivot
+    {
+        return $pivot->query(Sale::class)->values([Sum::make('amount')]);
+    }
+}
+```
+
+When `canAccess()` is `false`, the page is not in the navigation, its URL answers 403, and every call the browser sends to the open page (totals, drill-down, export, saved layouts) answers 403 too, because Filament checks `canAccess()` again on each Livewire request. Return `false` for guests.
+
+When `canWrite()` is `false`, the page still opens and works for reading, but:
+
+| Hidden on the page | Refused when called directly |
+| --- | --- |
+| Editing a drill-down cell in place (`drillDownEditable()`) | `warpPivotUpdateDrillDownRecord()` answers 403 and nothing is saved |
+| The `EditAction`, `DeleteAction`, `ForceDeleteAction`, `RestoreAction` and `ReplicateAction` of `drillDownRecordActions()` | The action does not run |
+| The "Share with everyone" switch when saving a layout | A layout saved from a view-only page is never shared |
+| The delete button of the user's own shared layouts | `warpPivotDeleteView()` answers 403 for a shared layout |
+
+Reading stays open: the totals, expanding headers, the drill-down list, filters, the chart, printing, the xlsx and csv export, and saving, applying and deleting the user's own private layouts (they are only that person's view).
+
+Your own actions (`cellActions()`, and actions other than the ones above in `drillDownRecordActions()`) are not hidden for you, because the plugin can't tell whether they change data. Hide the ones that write with `->visible(fn (): bool => SalesReport::canWrite())`, and check again inside the action.
+
+These checks only narrow what your existing rules allow: the policy (`viewAny`, `update`, `delete`) and `authorize()` still apply, so `canWrite()` returning `true` never lets someone edit a record their policy refuses. A `PivotWidget` has no `canWrite()`; it follows your policy as before.
 
 ### Tenancy
 

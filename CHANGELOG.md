@@ -5,6 +5,13 @@ All notable changes to `qalainau/filament-warp-pivot` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-11-15
+
+### Added
+
+- `PivotPage::canWrite()`: override it to make a page view only for some roles. The drill-down's in-place editing and its edit and delete actions are hidden and refused, and layouts can't be shared; reading, export and the user's own layouts stay. `canAccess()` of the page is now also checked on every call the open page sends. See "Restricting pages per role" in the README.
+- `blankLabel()` on every dimension: the header of the records without a value (`NULL`), in the table and in the list of values of a filter. For example `Relationship::make('department')->blankLabel('No department')`. It is "(blank)" by default, as before.
+
 ## [1.8.1] - 2026-11-14
 
 ### Fixed
