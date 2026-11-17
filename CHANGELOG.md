@@ -5,6 +5,17 @@ All notable changes to `qalainau/filament-warp-pivot` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-11-17
+
+### Added
+
+- `Relationship::titleUsing()`: build the header from the related record, for example `fn (SalesOrder $record): string => "{$record->number} {$record->title}"`, instead of one column with `titleAttribute()`. Without `orderBy()`, headers are sorted by the text it returns.
+
+### Fixed
+
+- Drill-down: the `with()` (and `without()`) of the query given to `query()` is now kept when the records of a cell are listed. It was dropped, so a `recordUrl()`, record action or format that reads a relation loaded it once per record, and failed in apps that use `Model::preventLazyLoading()`.
+- Screen readers: when the data was reloaded with fewer columns (for example after a layout or tenant change) just after scrolling, building the hidden table for screen readers could fail with "Cannot read properties of undefined" in the browser console. It now only reads the rows and columns that still exist.
+
 ## [1.9.0] - 2026-11-15
 
 ### Added

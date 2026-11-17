@@ -187,6 +187,7 @@ use Qalainau\FilamentWarpPivot\Dimensions\Relationship;
 Column::make('channel');                                     // enum casts give labels and order
 Column::make('status')->options(['open' => 'Open', 'closed' => 'Closed']);
 Relationship::make('product.category')->titleAttribute('name')->orderBy('sort');
+Relationship::make('salesOrder')->titleUsing(fn (SalesOrder $record): string => "{$record->number} {$record->title}");
 Date::make('sold_at')->month();                              // year, quarter, week, day, hour
 Date::make('sold_at')->dayOfWeek()->weekStartsOn(0);         // monthOfYear, quarterOfYear, hourOfDay
 Date::make('sold_at')->month()->timezone('Europe/Berlin');   // defaults to FilamentTimezone
@@ -194,6 +195,8 @@ Bins::make('amount')->width(1000);                           // 0 – 1,000, 1,0
 Bins::make('amount')->ranges([1000, 5000, 20000]);           // under 1,000 … 20,000 and over
 Expression::make('size')->sql("case when amount >= 5000 then 'large' else 'small' end");
 ```
+
+`titleUsing()` builds the header from the related record when one column is not enough (a number and a title, a first and last name). It runs once per related record shown, after the totals; without `orderBy()` the headers are sorted by the text it returns. It takes precedence over `titleAttribute()`.
 
 Every dimension accepts `label()`, `formatLabelUsing(fn (string $value, string $label): string => …)`, `blankLabel('No department')` (the header of records without a value, "(blank)" by default), `orderByValue()` (largest total first) and `limit(10)` (the ten largest per group, the rest as "Other").
 
@@ -680,6 +683,8 @@ $pivot
 - `drillDownEditable()` lets users double-click a cell of these columns (of the model's own table) to change it and press Enter to save. The value is validated with the rules you give, the record is looked up within the pivot's filters and tenant, and the model's `update` policy is checked when there is one. After saving, the list and the totals are queried again, so columns your model changes along with it (an amount worked out from the quantity in a `saving` hook, say) show their new values. If a model event stops the save, the user is told it was not saved. Dates and times are shown and read in Filament's timezone (`FilamentTimezone`), and date-only columns (`date` casts) are left as they are (see [Dates and formats in the drill-down](#dates-and-formats-in-the-drill-down)).
 - Users can hide and show the columns of the list; the choice is remembered in their browser.
 - `drillDownRecordActions()` adds Filament actions to each record. They open on top of the list, and when they finish, the list and the totals behind it are queried again. The records come from the pivot's query, with its filters and tenant. `EditAction`, `DeleteAction`, `ViewAction`, `ReplicateAction`, `RestoreAction` and `ForceDeleteAction` follow the model's policy (`update`, `delete` and so on) when it has one, as they do in a resource. Call `authorize()` on an action to decide yourself.
+
+The related columns of `drillDownColumns()` are loaded for the whole page at once. Other relations you read in `recordUrl()`, `drillDownFormats()` or the record actions are not: add them to the query with `with()` (`->query(Sale::query()->with('product'))`), which the list keeps, so apps that use `Model::preventLazyLoading()` don't fail.
 
 Searching and sorting are done in the database, and the list is still sent as data and drawn in the browser, so it stays fast.
 
