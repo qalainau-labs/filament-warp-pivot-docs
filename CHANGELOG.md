@@ -5,7 +5,31 @@ All notable changes to `qalainau/filament-warp-pivot` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.11.0] - 2026-11-23
+
+### Added
+
+- Scheduled Excel and CSV reports from saved layouts through `PivotReport` and `warp-pivot:send`, with per-recipient authorization and tenant scoping, synchronous mail attachments and customizable notifications.
+
+- Relationship dimensions retain member filters and conditions through layout serialization. Top/bottom N on many-valued dimensions shows N members without an "Other" header; true totals include omitted members. Separate many-valued dimensions can be used on both axes without multiplying cells or totals.
+
+- Relationship dimensions support one `BelongsToMany` or `HasMany` step, `emptyLabel()`, distinct source-record aggregates, true subtotals and grand totals, membership filters and drill-down. The README explains overlapping members and the supported relationship paths, including Troubleshooting.
+
+- Optional `crossFilter()` links pivot headers to other pivots, Warp Chart and existing Filament dashboard filters, with selection badges and temporary scoped aggregation.
+
+- Row sparklines (`sparklines()`) and accessible trend arrows (`trendIcons()`), with layout controls, saved layouts, URL state, and PDF/PNG/print rendering.
+
+- Excel and CSV export of drill-down records, with the current search, sort, visible columns and formats, a configurable 50,000-record limit, tenant and access checks, and `saveExportsUsing()` support.
+
+- Calendar differences and percentage changes from the same period last year or the previous period in "Show values as", with a named Date dimension, scoped baseline queries outside date filters, and date subtotals.
+
+### Changed
+
+- "Show values as": the options that compare with the cell before it are now called "Difference from previous item" and "% difference from previous item" (they were "… from previous"), so they are not confused with the new "… from previous period". The values and the saved layouts are the same.
+
+### Fixed
+
+- Long row and column dimension labels in the table's top-left corner no longer overlap in Compact, Classic or Flat layouts; labels that do not fit side by side use two lines.
 
 ## [1.10.2] - 2026-11-20
 
