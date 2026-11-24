@@ -436,7 +436,13 @@ Sum::make('amount')->name('growth')
 
 Both options are off by default. `sparklines(bool|Closure $condition = true, ?string $measure = null, string $type = 'line')`
 adds a fixed 96px Trend column at the right. Choose an active value by its measure name, or omit `measure` for the first
-value; `type` accepts `line` or `column`. Unknown active value names and invalid types raise a descriptive exception.
+value; `type` accepts `line` or `column`. A `measure` that is not one of the pivot's `values()` and an invalid type raise
+a descriptive exception, because that is a mistake in the definition.
+
+When a layout leaves the named value out (a user removes it in the Fields panel, a saved layout without it, or
+`warpPivotFetch(layout: [...])`), the Trend column follows the first value of that layout instead, so the page keeps
+working while users rearrange it. Adding the named value back makes the line follow it again. With no values in the
+layout, no line is drawn.
 The line follows the visible terminal column headers, excluding subtotal and grand total columns. Date columns run
 chronologically even when sorted differently; other dimensions keep table order. Missing values are skipped without
 breaking the line. Each row uses its own minimum and maximum (constant values sit in the middle), marks the last point

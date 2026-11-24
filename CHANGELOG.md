@@ -5,6 +5,12 @@ All notable changes to `qalainau/filament-warp-pivot` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-11-25
+
+### Fixed
+
+- A pivot with `sparklines(measure: '…')` no longer fails to render when a layout leaves that value out (a user removes it in the Fields panel, a saved layout without it, or `warpPivotFetch(layout: [...])`). The Trend column falls back to the first value in the layout. A name that was never one of the pivot's values still throws.
+
 ## [1.11.0] - 2026-11-23
 
 ### Added
