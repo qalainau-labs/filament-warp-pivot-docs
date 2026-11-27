@@ -5,6 +5,12 @@ All notable changes to `qalainau/filament-warp-pivot` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.2] - 2026-11-28
+
+### Fixed
+
+- The Trend column (`sparklines()`) now sits right after the last value column when the table is narrower than the pivot, instead of being pinned to the far right with an empty band in between (most visible with `valuesOn('rows')` on wide screens). When the table is wider than the pivot and scrolls sideways, the Trend column still stays pinned to the right edge.
+
 ## [1.11.1] - 2026-11-25
 
 ### Fixed
