@@ -5,6 +5,14 @@ All notable changes to `qalainau/filament-warp-pivot` will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.11.3] - 2026-11-28
+
+### Fixed
+
+- **Under heavy load, refreshing a pivot or opening the saved layouts could stop with an error** (`Cannot read properties of undefined (reading 'cells')`, or `views.length`). When the server's reply goes missing, the pivot now asks once more and otherwise keeps the numbers it already shows. A formula is no longer added when its check got no reply, and saving a drill-down cell, deleting a layout or applying a layout is never sent twice: the pivot reloads instead.
+
 ## [1.11.2] - 2026-11-28
 
 ### Fixed
