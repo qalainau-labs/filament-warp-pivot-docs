@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.4] - 2026-11-28
+
+### Fixed
+
+- **When the server's reply to saving a drill-down cell went missing, the cell stayed open as if nothing was saved** (since 1.11.3), although the totals had already changed. The pivot now says "We could not confirm that your change was saved. The pivot has been reloaded, so check it before trying again.", closes the cell and shows the value the server actually has. Deleting a saved layout gives the same message when its reply is missing (new text key `save_unknown`, 10 languages).
+
 ## [1.11.3] - 2026-11-28
 
 ### Fixed
