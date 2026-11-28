@@ -398,6 +398,20 @@ The table is as tall as its rows, up to `height()` (a number of pixels or a CSS 
 $pivot->height(480);                                         // at most 480px tall
 ```
 
+#### Fill the width
+
+By default, each value column is as wide as its content, and a table narrower than the pivot leaves empty space on the right. Call `fillWidth()` to share that space among the value columns, like a Filament table: the table then always reaches the right edge.
+
+```php
+$pivot->fillWidth();                                        // or fillWidth(fn (): bool => ...)
+```
+
+- The spare width goes to the value columns in proportion to their content width. The row headers keep their width, and the Trend column (`sparklines()`) stays at the right edge.
+- A column that a user widens or narrows by dragging its border keeps that width; the other columns share what is left. Double-click the border to let it fill again.
+- When the table is wider than the pivot, nothing changes: the columns keep their content width and the table scrolls sideways.
+- PDF and PNG exports keep the content widths, since a page is not as wide as the screen. Excel and CSV are not affected.
+- Without `fillWidth()`, the pivot renders exactly as before.
+
 #### Values in rows
 
 With several values and many columns (sales, cost, margin and margin % for each of twelve months make 48 columns), put the values in rows instead: each row header gets one row per value, and each column header one column.

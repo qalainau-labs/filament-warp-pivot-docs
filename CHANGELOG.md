@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-11-28
+
+### Added
+
+- **`fillWidth()`: let the table fill the pivot's width.** When the table is narrower than the pivot, the spare width is shared among the value columns in proportion to their content, like a Filament table, instead of being left empty on the right. Columns a user resized keep their width, the Trend column stays at the right edge, and PDF and PNG exports keep the content widths. Opt-in: without it, nothing changes.
+
 ## [1.11.4] - 2026-11-28
 
 ### Fixed
