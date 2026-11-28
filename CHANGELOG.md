@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-11-28
+
+### Fixed
+
+- **The last column heading no longer overlaps “Trend”**: when the table was wider than its frame and trend lines were on, the heading of the last column (for example “Aug 2025”) was drawn under the “Trend” column and the two texts collided. The heading is now placed in the part of the column that stays visible.
+
 ## [1.12.0] - 2026-11-28
 
 ### Added
